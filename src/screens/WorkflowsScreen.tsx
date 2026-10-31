@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BuildChecklist, BuildMeter, useBuildProgress } from '../components/BuildProgress';
 import { Flowchart } from '../components/Flowchart';
-import { IconCheck, IconKnowledge, IconLink, IconVm, IconWorkflow } from '../components/Icons';
+import { IconCheck, IconLink, IconVm, IconWorkflow } from '../components/Icons';
 import { ReplayPlayer } from '../components/ReplayPlayer';
 import { VideoReplay } from '../components/VideoReplay';
 import { FIELD_LABEL, VAR_KEYS } from '../data/desktop';
@@ -49,7 +49,7 @@ export function WorkflowsScreen() {
         <div className="building-card panel">
           <h1>Building the workflow from your recording</h1>
           <BuildMeter progress={progress} />
-          <BuildChecklist rec={rec} progress={progress} />
+          <BuildChecklist rec={rec} progress={progress} pastOrders={orderHistory(s.knowledge.data).cases.length} />
           <button type="button" className="btn is-quiet is-small" onClick={skipBuild}>Skip ahead</button>
         </div>
       </div>
@@ -82,7 +82,9 @@ function WorkflowView({ rec, wf, selected }: { rec: Recording; wf: Workflow; sel
   }, [rec.id]);
   const shown = Math.max(revealed, revealed >= 6 ? 99 : 0);
 
-  const kb = useStore().knowledge.data;
+  const { knowledge, build } = useStore();
+  const kb = knowledge.data;
+  const fallback = build.fallback ?? null;
   const h = useMemo(() => orderHistory(kb), [kb]);
   const questions = buildQuestions(rec, kb, wf.edits, h);
   const byRecords = answeredByRecords(questions);
@@ -131,6 +133,14 @@ function WorkflowView({ rec, wf, selected }: { rec: Recording; wf: Workflow; sel
         </div>
       </header>
 
+      {(fallback || questions[0]?.prebuilt?.whole) && (
+        <p className="wf-fallback" role="status">
+          {fallback
+            ? `This is the prebuilt workflow: building from the recording failed (${fallback}). Check the steps before approving.`
+            : 'The recording didn’t show enough to map the fields, so they come from the prebuilt workflow. Check them before approving.'}
+        </p>
+      )}
+
       <RecordsPanel
         questions={questions}
         wf={wf}
@@ -149,6 +159,10 @@ function WorkflowView({ rec, wf, selected }: { rec: Recording; wf: Workflow; sel
             revealed={shown}
             sourceLabel={sourceLabel}
             evidence={(n) => nodeEvidence(n, h, wf.edits)}
+            addedLabel={(() => {
+              const sg = questions.find((q) => q.id === 'price')?.suggestion;
+              return sg?.applied ? `Added from ${sg.by === 'knowledge' ? 'the knowledge base' : 'past orders'}` : undefined;
+            })()}
             onSelect={(id) => setState({ selectedNode: id })}
             onMove={(id, x, y) => updateEdits((e) => ({ ...e, positions: { ...e.positions, [id]: { x, y } }, approved: false }))}
             onAnswer={(p) => answerQuestion(p)}
@@ -178,7 +192,7 @@ const SOURCE_LABEL: Record<AnswerSource, string> = {
   recording: 'Recording',
   knowledge: 'Knowledge base',
   history: 'Past orders',
-  'built-in': 'Built in',
+  prebuilt: 'Prebuilt workflow',
   you: 'You',
 };
 
@@ -193,7 +207,11 @@ function SourceChips({ q }: { q: BuildQuestion }) {
 
 /** What the workflow will do for a question, in one line. */
 function answerLine(q: BuildQuestion, wf: Workflow, h: { approver: string | null }): string {
-  if (q.id === 'mapping') return 'As in the recording';
+  if (q.id === 'mapping') {
+    if (q.prebuilt?.whole) return 'From the prebuilt workflow';
+    const n = q.prebuilt?.fields ?? 0;
+    return n ? `As in the recording; ${n} field${n === 1 ? '' : 's'} from the prebuilt workflow` : 'As in the recording';
+  }
   if (q.id === 'missing') return 'Stop and flag it for a person';
   const e = wf.edits;
   if (e.answer === null) return 'Needs your answer';
@@ -434,7 +452,7 @@ function Inspector({ node, wf, rec, h, approver }: { node: WfNode; wf: Workflow;
 
       {node.kind === 'fill' && (
         <section>
-          <h3>Fields</h3>
+          <h3>Fields{checks ? ' · matches in past orders' : ''}</h3>
           <ul className="map-edit">
             {mappingRows(wf).map((r) => (
               <li key={r.field}>
@@ -453,9 +471,8 @@ function Inspector({ node, wf, rec, h, approver }: { node: WfNode; wf: Workflow;
                 {checks?.get(r.field) && (() => {
                   const c = checks.get(r.field)!;
                   return (
-                    <span className={`map-check${c.agree < c.total ? ' is-off' : ''}`} title={c.differ.map((d) => `${d.c.order.ref ?? d.c.order.name}: email ${d.email ?? 'empty'}, buyer entered ${d.odoo}`).join('
-') || undefined}>
-                      {c.agree}/{c.total} past
+                    <span className={`map-check${c.agree < c.total ? ' is-off' : ''}`} title={`Matched ${c.agree} of ${c.total} past orders. ` + c.differ.map((d) => `${d.c.order.ref ?? d.c.order.name}: email ${d.email ?? 'empty'}, buyer entered ${d.odoo}`).join('; ') || undefined}>
+                      {c.agree}/{c.total}
                     </span>
                   );
                 })()}

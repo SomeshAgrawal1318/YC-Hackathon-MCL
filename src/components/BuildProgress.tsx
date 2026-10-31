@@ -4,7 +4,8 @@ import { useFrameClock } from '../lib/hooks';
 import type { State } from '../lib/store';
 import { IconCheck } from './Icons';
 
-export function buildSteps(rec: Recording): string[] {
+/** `pastOrders`: past orders matched to their emails (src/data/history.ts), which answer questions. */
+export function buildSteps(rec: Recording, pastOrders = 0): string[] {
   const targets = new Set(rec.events.map((e) => e.target?.tid).filter(Boolean)).size;
   const apps = new Set(rec.events.map((e) => e.app).filter((a) => a !== 'desktop')).size;
   return [
@@ -12,7 +13,9 @@ export function buildSteps(rec: Recording): string[] {
     `Grouped them into ${rec.events.length} actions across ${apps} apps`,
     `Matched ${targets} screen elements by their accessibility names`,
     'Found 6 values that change from order to order',
-    'Drafted 5 steps and 1 question for you',
+    pastOrders
+      ? `Checked ${pastOrders} past orders and their emails for what the recording couldn’t show`
+      : 'Drafted 5 steps and 1 question for you',
   ];
 }
 
@@ -24,8 +27,8 @@ export function useBuildProgress(build: State['build']): number {
 }
 
 /** The step-by-step "how the workflow gets built" list. */
-export function BuildChecklist({ rec, progress }: { rec: Recording; progress: number }) {
-  const steps = buildSteps(rec);
+export function BuildChecklist({ rec, progress, pastOrders = 0 }: { rec: Recording; progress: number; pastOrders?: number }) {
+  const steps = buildSteps(rec, pastOrders);
   const doneCount = Math.floor(progress * steps.length + 0.0001);
   return (
     <ol className="build-list">

@@ -954,3 +954,54 @@ code { font-family: var(--mono); font-size: 0.92em; }
 .dana-price { margin: 0; font-size: 14px; }
 .dana-card .approval { margin: 2px 0; }
 .dana-card .odoo-link { align-self: flex-start; }
+
+/* ---------- Workflow: what the recording couldn't show, and who answered it ---------- */
+.rec-qs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rec-q { display: flex; flex-direction: column; gap: 8px; padding: 10px 13px; border-radius: var(--r); border-left: 4px solid var(--ok); }
+.rec-q.is-open { border-left-color: var(--ask); background: #fffbf0; }
+.rec-q.is-active { box-shadow: 0 0 0 2px var(--agent), var(--glass-shadow); }
+.rec-q-main { font: inherit; color: inherit; background: none; border: none; padding: 0; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.rec-q-main:hover .rec-q-answer { text-decoration: underline; text-underline-offset: 3px; }
+.rec-q-text { font-size: 12px; color: var(--ink-3); line-height: 1.3; }
+.rec-q-answer { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.rec-q-use { align-self: flex-start; }
+.rec-back { margin-bottom: 10px; font-size: 12.5px; }
+.src-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.src-chip { display: inline-block; font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em; padding: 1px 7px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+.src-chip.is-recording { color: var(--agent-ink); background: var(--agent-weak); border-color: rgba(42, 70, 201, 0.16); }
+.src-chip.is-knowledge { color: var(--flag); background: var(--flag-bg); border-color: rgba(140, 35, 66, 0.16); }
+.src-chip.is-history { color: var(--ok); background: var(--ok-bg); border-color: rgba(31, 107, 69, 0.16); }
+.src-chip.is-prebuilt { color: var(--ink-2); background: rgba(18, 28, 39, 0.06); border-color: var(--line-2); }
+.wf-fallback { margin: 0; font-size: 13.5px; color: var(--ask); background: var(--ask-bg); border: 1px solid var(--ask-line); border-radius: var(--r-sm); padding: 8px 12px; }
+.src-chip.is-you { color: var(--ask); background: var(--ask-bg); border-color: rgba(107, 82, 0, 0.16); }
+.evidence { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.evidence li { border-left: 2px solid var(--line); padding-left: 10px; }
+.evidence p { margin: 4px 0 0; font-size: 13.5px; }
+.evidence-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.evidence-links .link-btn { font-size: 12.5px; display: inline-flex; gap: 4px; align-items: center; }
+.policy-pick { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.policy-pick label { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.policy-pick label.is-on { border-color: var(--agent); background: var(--agent-weak); }
+
+/* Evidence on flowchart steps, and the backtest. */
+.fc-foot { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fc-foot .fc-src { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+.fc-foot .fc-src svg { vertical-align: -2px; margin-right: 4px; }
+.fc-ev { margin-left: auto; flex: none; font-size: 11px; font-weight: 600; color: var(--ok); background: var(--ok-bg); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.fc-ev.is-weak { color: var(--flag); background: var(--flag-bg); }
+.map-edit select { margin-left: auto; }
+.map-check { flex: none; width: 46px; text-align: right; font-size: 11.5px; font-family: var(--mono); color: var(--ok); }
+.map-check.is-off { color: var(--flag); cursor: help; }
+.bt-score { font-size: 13.5px; margin: 0 0 6px; }
+.bt-score.is-ok strong { color: var(--ok); }
+.bt-score.is-off strong { color: var(--flag); }
+.bt-table td { font-size: 12.5px; }
+.bt-table td:first-child { white-space: nowrap; }
+.bt-table tr.is-off td { color: var(--flag); }
+.bt-table .link-btn { font-size: 12.5px; font-family: var(--mono); }
+.bt-diff { display: block; font-size: 11.5px; color: var(--flag); }
+.bt-note { font-size: 12px; margin-top: 6px; }
+.price-bt { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; }
+.price-bt li { display: grid; grid-template-columns: 64px 1fr auto; gap: 8px; align-items: center; }
+.price-bt li span:first-child { font-family: var(--mono); }
+.price-bt li.is-off { color: var(--flag); }

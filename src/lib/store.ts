@@ -11,7 +11,7 @@ import { bus, isElectron } from './bus';
 import { runInVms, runOnPc } from './runner';
 import { actorCall } from './actors';
 import { startVideo, stopVideo } from './video';
-import { workflowFromRecording } from './workflowBuilder';
+import { prebuiltEdits, workflowFromRecording } from './workflowBuilder';
 
 export type Tab = 'recordings' | 'workflows' | 'tests' | 'reports' | 'deploy' | 'knowledge';
 
@@ -46,7 +46,8 @@ export interface State {
   sim: DesktopState;
   recordings: Recording[];
   recordingId: string | null;
-  build: { status: 'idle' | 'building' | 'ready'; startedAt: number; ms: number };
+  /** fallback: why the prebuilt workflow was used instead of building from the recording, if it was. */
+  build: { status: 'idle' | 'building' | 'ready'; startedAt: number; ms: number; fallback?: string | null };
   edits: WorkflowEdits;
   selectedNode: string | null;
   /** Set when jumping from a workflow node to the part of the recording it came from. */
@@ -302,17 +303,25 @@ let buildToken = 0;
 export function startBuild(rec: Recording | null = currentRecording()) {
   const token = ++buildToken;
   const ms = state.settings.buildMs;
-  setState({ build: { status: 'building', startedAt: Date.now(), ms } });
-  const done = (edits: WorkflowEdits | null) => {
+  setState({ build: { status: 'building', startedAt: Date.now(), ms, fallback: null } });
+  const done = (edits: WorkflowEdits | null, fallback: string | null = null) => {
     if (token !== buildToken) return;
-    setState((s) => ({ build: { ...s.build, status: 'ready' }, edits: edits ?? s.edits }));
+    setState((s) => ({ build: { ...s.build, status: 'ready', fallback }, edits: edits ?? s.edits }));
   };
   // src/lib/workflowBuilder.ts: field mappings from the recording, the price rule from the
-  // knowledge base or the order history.
-  const built = rec ? workflowFromRecording(rec, state.knowledge.data) : Promise.resolve(null);
+  // knowledge base or the order history. If it fails or hangs, the prebuilt workflow is used.
+  const built: Promise<WorkflowEdits | null> = rec
+    ? Promise.race([
+        Promise.resolve().then(() => workflowFromRecording(rec, state.knowledge.data)),
+        new Promise<never>((_, reject) => later(ms + 5000, () => reject(new Error('it took too long')))),
+      ])
+    : Promise.resolve(null);
   Promise.all([built, new Promise((r) => later(ms, () => r(null)))])
-    .then(([edits]) => done(edits))
-    .catch(() => done(null));
+    .then(([edits]) => (edits ? done(edits) : rec ? done(prebuiltEdits(), 'the builder returned nothing') : done(null)))
+    .catch((e: Error) => {
+      console.error('Workflow builder failed, using the prebuilt workflow:', e);
+      done(prebuiltEdits(), e.message || 'the builder failed');
+    });
 }
 
 export function skipBuild() {

@@ -51,8 +51,9 @@ export function sameValue(field: VarKey, a?: string, b?: string): boolean {
 
 /** Orders a buyer entered: confirmed, with a line, and not made by a workflow test run. */
 const humanOrders = (kb: Knowledge) =>
-  (kb.orders ?? [])
-    .filter((o) => o.lines.length && o.lines[0].sku && !/^MCL test/i.test(o.origin))
+  (Array.isArray(kb.orders) ? kb.orders : [])
+    .filter((o) => o && Array.isArray(o.lines) && o.lines.length && o.lines[0].sku && typeof o.date === 'string' && !/^MCL test/i.test(o.origin || ''))
+    .map((o) => ({ ...o, notes: Array.isArray(o.notes) ? o.notes.map(String) : [] }))
     .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
 
 const APPROVER = [/Approved by ([A-Z][a-z]+(?: [A-Z][a-z'-]+)+)/, /sent to ([A-Z][a-z]+(?: [A-Z][a-z'-]+)+) for approval/i];
@@ -75,9 +76,19 @@ function buyerAction(read: Extracted, notes: string[]): { action: BuyerAction; a
 
 /** Pairs each past order with its email and works out what the buyer did. */
 export function orderHistory(kb: Knowledge): OrderHistory {
+  // Organisation context is optional: anything unreadable counts as no history, and the workflow
+  // falls back to its prebuilt answers.
+  try {
+    return readHistory(kb);
+  } catch {
+    return { cases: [], orders: 0, emails: 0 };
+  }
+}
+
+function readHistory(kb: Knowledge): OrderHistory {
   const orders = humanOrders(kb);
-  const emails = Object.values(kb.sources).filter((s) => s.order && s.text);
-  const vendors = Array.from(new Set([...orders.map((o) => o.vendor), ...Object.values(kb.entities).filter((e) => e.type === 'supplier').map((e) => e.name)])).filter(Boolean);
+  const emails = Object.values(kb.sources ?? {}).filter((s) => s.order && typeof s.text === 'string' && s.text);
+  const vendors = Array.from(new Set([...orders.map((o) => o.vendor), ...Object.values(kb.entities ?? {}).filter((e) => e.type === 'supplier').map((e) => e.name)])).filter(Boolean);
   const skus = Array.from(new Set(orders.map((o) => o.lines[0].sku!)));
   const read = new Map(emails.map((e) => [e.id, extractOrder(e.text!, { vendors, skus: skus.length ? skus : undefined })]));
 

@@ -11,7 +11,9 @@ interface Props {
   revealed: number;
   sourceLabel: (n: WfNode) => string | null;
   /** How well past orders back a step; weak ones are marked for review. */
-  evidence?: (n: WfNode) => { text: string; weak: boolean } | null;
+  evidence?: (n: WfNode) => { text: string; detail: string; weak: boolean } | null;
+  /** Footer for steps that came from the price answer rather than the recording. */
+  addedLabel?: string;
   onSelect: (id: string | null) => void;
   onMove: (id: string, x: number, y: number) => void;
   onAnswer: (p: PricePolicy) => void;
@@ -49,7 +51,7 @@ const KIND_ICON: Partial<Record<WfNode['kind'], ReactElement>> = {
   flag: <IconFlag size={16} />,
 };
 
-export function Flowchart({ wf, selected, revealed, sourceLabel, evidence, onSelect, onMove, onAnswer, onShowSource }: Props) {
+export function Flowchart({ wf, selected, revealed, sourceLabel, evidence, addedLabel = 'Added from your answer', onSelect, onMove, onAnswer, onShowSource }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 700 });
   const drag = useRef<{ id: string; sx: number; sy: number; nx: number; ny: number; moved: boolean } | null>(null);
@@ -179,9 +181,9 @@ export function Flowchart({ wf, selected, revealed, sourceLabel, evidence, onSel
                         <IconLink size={13} /> {src}
                       </button>
                     ) : (
-                      <span className="fc-src is-added">Added from your answer</span>
+                      <span className="fc-src is-added">{addedLabel}</span>
                     )}
-                    {ev && <span className={`fc-ev${ev.weak ? ' is-weak' : ''}`} title={ev.weak ? 'Past orders don’t fully back this step. Check it.' : 'Checked against past orders'}>{ev.text}</span>}
+                    {ev && <span className={`fc-ev${ev.weak ? ' is-weak' : ''}`} title={`${ev.detail}${ev.weak ? '. Check this step.' : ''}`}>{ev.text}</span>}
                   </div>
                 </>
               )}
