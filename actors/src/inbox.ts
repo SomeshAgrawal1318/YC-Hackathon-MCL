@@ -32,6 +32,8 @@ async function withImap<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
         auth: { user: process.env.GMAIL_INBOX || "", pass: String(process.env.GMAIL_INBOX_APP_PASSWORD || "").replace(/\s+/g, "") },
         logger: false
     })
+    // A socket error after logout would otherwise be an unhandled 'error' event and crash the actor host.
+    client.on("error", () => undefined)
     try {
         await client.connect()
     } catch (e) {

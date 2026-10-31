@@ -79,6 +79,8 @@ export class ShadowDeployment extends Actor {
     @Persisted catalog: Catalog = { vendors: [], skus: [] }
     /** Highest IMAP UID already seen, per mailbox (inline type: the client types must not pull in inbox.ts). */
     @Persisted watermarks: Record<string, number> = {}
+    /** Set by deploy: the first alarm tick records where the inbox stands instead of reading it. */
+    @Persisted needsWatermark = false
 
     constructor(context: ActorContext) {
         super(context)
@@ -87,23 +89,19 @@ export class ShadowDeployment extends Actor {
             status TEXT, note TEXT, resolved_at INTEGER, checks INTEGER DEFAULT 0)`)
     }
 
-    /** Starts shadow mode with the approved workflow's answers. Earlier results are cleared. */
+    /**
+     * Starts shadow mode with the approved workflow's answers. Earlier results are cleared. Quick on
+     * purpose (no IMAP here): a call holds the actor, and the app's live view connects right after.
+     */
     async deploy(edits: ShadowEdits): Promise<{ source: string; error: string | null }> {
         this.db.exec("DELETE FROM orders")
         this.edits = edits
         this.catalog = await odoo.catalog()
         this.lastError = null
         this.watermarks = {}
-        this.source = "injected only"
-        if (imapConfigured()) {
-            try {
-                // Everything already in the inbox (the test and recording emails) counts as seen.
-                this.watermarks = await currentWatermarks()
-                this.source = "imap"
-            } catch (e) {
-                this.lastError = (e as Error).message
-            }
-        }
+        this.source = imapConfigured() ? "imap" : "injected only"
+        // Everything already in the inbox (the test and recording emails) will count as seen.
+        this.needsWatermark = this.source === "imap"
         this.status = "watching"
         this.lastCheck = Date.now()
         refresh(this)
@@ -132,6 +130,7 @@ export class ShadowDeployment extends Actor {
         this.status = "off"
         this.edits = null
         this.watermarks = {}
+        this.needsWatermark = false
         this.lastError = null
         this.lastCheck = null
         refresh(this)
@@ -142,9 +141,14 @@ export class ShadowDeployment extends Actor {
         const errors: string[] = []
         if (this.source === "imap") {
             try {
-                const { emails, watermarks } = await fetchNew(this.watermarks)
-                for (const email of emails) await ingestOne(this, email)
-                this.watermarks = watermarks
+                if (this.needsWatermark) {
+                    this.watermarks = await currentWatermarks()
+                    this.needsWatermark = false
+                } else {
+                    const { emails, watermarks } = await fetchNew(this.watermarks)
+                    for (const email of emails) await ingestOne(this, email)
+                    this.watermarks = watermarks
+                }
             } catch (e) {
                 errors.push((e as Error).message)
             }

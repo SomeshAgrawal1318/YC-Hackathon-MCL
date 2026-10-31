@@ -36,9 +36,11 @@ export interface ShadowCase {
 
 export const SHADOW_CASES: ShadowCase[] = [
   {
-    message: ridgeline('m-4531', 'PO-4531', 'HRC-2MM', 'hot-rolled steel sheet, 2 mm, 4 x 8 ft', '600', '38.50', '2026-12-04'),
+    // HRC-3MM, not HRC-2MM: approving the +8.8% test order (PO-4520) confirms a new HRC-2MM price,
+    // which would turn this into a price question when shadow mode runs after the approval.
+    message: ridgeline('m-4531', 'PO-4531', 'HRC-3MM', 'hot-rolled steel sheet, 3 mm, 4 x 8 ft', '300', '52.20', '2026-12-04'),
     expect: 'matched',
-    buyer: { vendor: 'Ridgeline Steel Co.', ref: 'PO-4531', code: 'HRC-2MM', qty: 600, price: 38.5, date: '2026-12-04' },
+    buyer: { vendor: 'Ridgeline Steel Co.', ref: 'PO-4531', code: 'HRC-3MM', qty: 300, price: 52.2, date: '2026-12-04' },
   },
   {
     message: brightwater('m-4533', 'BW-21004', 'PO-4533', '90', '61.10', '8 Dec 2026'),

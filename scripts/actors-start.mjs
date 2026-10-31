@@ -10,7 +10,7 @@ const env = envMod.loadEnv();
 const cmd = process.argv[2] || 'dev';
 
 if (cmd === 'stop' || cmd === 'reset') {
-  stopActors(env);
+  await stopActors(env);
   console.log('Stopped the actors server.');
   if (cmd === 'reset') {
     const { spawnSync } = await import('node:child_process');

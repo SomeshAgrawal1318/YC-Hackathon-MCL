@@ -75,8 +75,11 @@ async function ensureActors({ env = loadEnv(), timeoutMs = 120000, log = () => {
   return false;
 }
 
-function stopActors(env = loadEnv()) {
+/** Stops the server and waits until its port is closed (it answers for a moment after pkill). */
+async function stopActors(env = loadEnv(), timeoutMs = 20000) {
   wsl(env, ['pkill', '-f', 'durable-actors'], { timeout: 20000 });
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until && (await isUp(env))) await new Promise((r) => setTimeout(r, 500));
 }
 
 function createActors({ broadcast = () => {} } = {}) {
@@ -95,6 +98,20 @@ function createActors({ broadcast = () => {} } = {}) {
     return client;
   }
 
+  let restarted = 0;
+  /**
+   * The dev runtime (v0.14) can get stuck after an actor host exits ("activation session cannot be
+   * reused"): every call then fails until the server restarts. Actor state is in SQLite, so restarting
+   * loses nothing; alarms are re-armed by resume() on the next grant.
+   */
+  async function restartServer() {
+    restarted = Date.now();
+    const env = loadEnv();
+    await stopActors(env);
+    starting = null;
+    return ensureActors({ env });
+  }
+
   /** Retries briefly: right after a start or a code change the actors may still be building. */
   async function withActors(fn) {
     let last;
@@ -104,6 +121,11 @@ function createActors({ broadcast = () => {} } = {}) {
       } catch (e) {
         last = e;
         if (/not running/.test(e.message)) break;
+        if (/actor host is unavailable|activation session/.test(e.message) && Date.now() - restarted > 60000) {
+          broadcast('actors:status', { up: false, message: 'Restarting the actors server…' });
+          await restartServer();
+          continue;
+        }
         await new Promise((r) => setTimeout(r, 1500));
       }
     }
