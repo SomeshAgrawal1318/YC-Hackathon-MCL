@@ -11,7 +11,7 @@
     "build": "vite build",
     "app": "vite build && electron .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run src",
     "helper:build": "cargo build --release --manifest-path native/trace-helper/Cargo.toml",
     "helper:print": "native\trace-helper\target\release\trace-helper.exe --print",
     "odoo:setup": "wsl -d Ubuntu-22.04 -u root bash scripts/wsl/odoo-setup.sh",
@@ -25,7 +25,9 @@
     "actors:dev": "node scripts/actors-start.mjs dev",
     "actors:generate": "node scripts/actors-start.mjs generate",
     "actors:stop": "node scripts/actors-start.mjs stop",
-    "actors:reset": "node scripts/actors-start.mjs reset"
+    "actors:reset": "node scripts/actors-start.mjs reset",
+    "test:electron": "node --test tests/*.test.cjs",
+    "check": "npm run typecheck && npm test && npm run test:electron && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
