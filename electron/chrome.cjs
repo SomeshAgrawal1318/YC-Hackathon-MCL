@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { chromium } = require('playwright-core');
+const { isGmail, isOdoo, assertOdoo } = require('./origins.cjs');
 
 const GMAIL_URL = 'https://mail.google.com/mail/u/0/#inbox';
 
@@ -44,17 +45,6 @@ async function connect(env) {
   });
   return browser;
 }
-
-const isGmail = (url) => /^https:\/\/mail\.google\.com\//.test(url) || /accounts\.google\.com/.test(url);
-const isOdoo = (env, url) => {
-  try {
-    const u = new URL(url);
-    const o = new URL(env.ODOO_URL);
-    return u.port === o.port && ['127.0.0.1', 'localhost', o.hostname].includes(u.hostname);
-  } catch {
-    return false;
-  }
-};
 
 async function windowFor(b, page) {
   const session = await page.context().newCDPSession(page);
@@ -107,10 +97,14 @@ async function openInNewWindow(b, url) {
 
 /** Signs in to Odoo in the demo Chrome if it shows the login page. */
 async function odooLogin(env, page) {
-  if (!/\/web\/login/.test(page.url())) return;
+  assertOdoo(env, page.url());
+  if (new URL(page.url()).pathname !== '/web/login') return;
   await page.fill('input[name=login]', env.ODOO_USER);
+  assertOdoo(env, page.url());
   await page.fill('input[name=password]', env.ODOO_PASSWORD);
-  await Promise.all([page.waitForURL((u) => !/\/web\/login/.test(String(u)), { timeout: 20000 }), page.click('button[type=submit]')]);
+  assertOdoo(env, page.url());
+  await Promise.all([page.waitForURL((u) => u.pathname !== '/web/login', { timeout: 20000 }), page.click('button[type=submit]')]);
+  assertOdoo(env, page.url());
 }
 
 /**
@@ -157,7 +151,7 @@ async function openDemoApps(env, area, { place = true } = {}) {
     } else gmail = await openInNewWindow(b, GMAIL_URL);
   }
   if (!odoo) odoo = await openInNewWindow(b, odooHome(env));
-  await odooLogin(env, odoo).catch(() => undefined);
+  await odooLogin(env, odoo);
   if (place) {
     const l = layout(area);
     await placeWindow(b, gmail, l.gmail).catch(() => undefined);

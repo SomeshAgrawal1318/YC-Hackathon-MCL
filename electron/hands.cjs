@@ -7,6 +7,7 @@ const { chromium } = require('playwright-core');
 const { openDemoApps, connect, isGmail, isOdoo, odooLogin, ensureWide, GMAIL_URL } = require('./chrome.cjs');
 const { createOdoo, ensureOdoo } = require('./odoo.cjs');
 const mail = require('./mail-imap.cjs');
+const { assertOdoo } = require('./origins.cjs');
 
 const TYPE_DELAY = 25; // ms per key, so typing is visible on screen
 const ITEM = '.o-autocomplete--dropdown-menu .o-autocomplete--dropdown-item';
@@ -35,6 +36,7 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
   const odooEnv = vm ? { ...env, ODOO_URL: target.odooUrl, ODOO_DB: target.odoo.db, ODOO_USER: target.odoo.user, ODOO_PASSWORD: target.odoo.password } : env;
   const odoo = createOdoo(odooEnv);
   const odooWeb = vm ? 'http://localhost:8069' : env.ODOO_URL.replace(/\/$/, '');
+  const browserEnv = { ...odooEnv, ODOO_URL: odooWeb };
   let pages = null;
   let vmBrowser = null;
   let lastEmail = null;
@@ -105,7 +107,7 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
       if (vm) {
         if (!env.GMAIL_INBOX || !env.GMAIL_INBOX_APP_PASSWORD) throw new Error('VM runs read email over IMAP: add GMAIL_INBOX and GMAIL_INBOX_APP_PASSWORD to .env.local.');
         const p = await getPages();
-        await odooLogin(odooEnv, p.odoo).catch(() => undefined);
+        await odooLogin(browserEnv, p.odoo);
       } else {
         onBusy(true);
         if (!(await ensureOdoo({ env }))) throw new Error('Odoo is not running and did not start. Run "npm run odoo:start" and try again.');
@@ -229,10 +231,11 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
     /** Opens a new request for quotation in Odoo. */
     async odooNewPo() {
       const { odoo: page } = await getPages();
+      assertOdoo(browserEnv, page.url());
       await page.bringToFront();
       if (!vm) await ensureWide(env, page, area());
       await page.goto(`${odooWeb}/odoo/purchase/new`);
-      await odooLogin(odooEnv, page);
+      await odooLogin(browserEnv, page);
       const vendor = page.locator('.o_form_view .o_field_widget[name=partner_id] input');
       await vendor.waitFor({ state: 'visible', timeout: 20000 });
       await settle(page);
@@ -245,6 +248,7 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
     /** Fills one purchase order field. field is a workflow key (supplier, po_number, …). */
     async odooFill({ field, value }) {
       const { odoo: page } = await getPages();
+      assertOdoo(browserEnv, page.url());
       const form = '.o_form_view';
       switch (field) {
         case 'supplier':
@@ -285,6 +289,7 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
     /** Saves the open purchase order. Returns its id, Odoo name and link. */
     async odooSave() {
       const { odoo: page } = await getPages();
+      assertOdoo(browserEnv, page.url());
       // Leave the order line so Odoo commits it, then save.
       await page.locator('.o_form_view .o_field_widget[name=partner_ref] input').click();
       await settle(page);
@@ -301,6 +306,7 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
     /** Posts an internal note on the open purchase order, for the buyer who must approve it. */
     async odooLogNote({ id, text }) {
       const { odoo: page } = await getPages();
+      assertOdoo(browserEnv, page.url());
       try {
         await page.getByRole('button', { name: 'Log note', exact: true }).click({ timeout: 5000 });
         const box = page.locator('.o-mail-Composer-input').first();
@@ -319,6 +325,7 @@ function createHands(env, { area, onBusy = () => {}, target = { kind: 'local' } 
     /** Discards the unsaved purchase order (used when a run flags instead of saving). */
     async odooDiscard() {
       const { odoo: page } = await getPages();
+      assertOdoo(browserEnv, page.url());
       const discard = page.locator('.o_form_button_cancel');
       if (await discard.isVisible().catch(() => false)) await discard.click();
       await settle(page);

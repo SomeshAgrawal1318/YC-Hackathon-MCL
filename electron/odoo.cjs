@@ -3,12 +3,15 @@
 
 const { spawn } = require('node:child_process');
 const { loadEnv } = require('./env.cjs');
+const { trustedOrigin } = require('./origins.cjs');
 const { isRetryableError, retryDelayMs, parseRetryAfter } = require('./retry-policy.cjs');
 
 class OdooError extends Error {}
 
 function createOdoo(env = loadEnv(), { fetch: request = globalThis.fetch, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), timeoutMs = 10000 } = {}) {
-  const base = env.ODOO_URL.replace(/\/$/, '');
+  const base = trustedOrigin(env.ODOO_URL);
+  const configured = new URL(env.ODOO_URL);
+  if (configured.pathname !== '/' || configured.search || configured.hash) throw new OdooError('ODOO_URL must be an origin without a path, query or fragment');
   let uid = null;
   let seq = 0;
 
