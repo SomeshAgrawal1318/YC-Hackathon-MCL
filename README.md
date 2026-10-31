@@ -1,5 +1,9 @@
 # MonteCarlo Labs
 
+## Hackathon demo video
+
+[Watch the Monte Carlo Labs demo on YouTube](https://youtu.be/JZss4Wk5brI)
+
 [![CI](https://github.com/SomeshAgrawal1318/YC-Hackathon-MCL/actions/workflows/ci.yml/badge.svg)](https://github.com/SomeshAgrawal1318/YC-Hackathon-MCL/actions/workflows/ci.yml)
 
 **Show a chore once. It runs itself from then on, and asks a person only when it should.**
