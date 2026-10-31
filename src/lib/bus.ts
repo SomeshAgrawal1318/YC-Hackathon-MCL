@@ -12,6 +12,11 @@ interface Bridge {
   isElectron: true;
   send: (msg: Msg) => void;
   onMessage: (cb: (msg: Msg) => void) => void;
+  /** Request/response calls into the Electron main process. */
+  invoke?: (
+    channel: 'hands' | 'trace:export' | 'trace:screen-source' | 'shell:open-url' | 'kb:get' | 'kb:sync' | 'kb:ask' | 'kb:ingest-recording' | 'kb:reset' | 'vm:status' | 'vm:start' | 'vm:release' | 'actors',
+    ...args: unknown[]
+  ) => Promise<any>;
 }
 
 declare global {

@@ -58,8 +58,8 @@ const DISTRACTORS: MailMessage[] = [
     company: 'Plant IT',
     subject: 'Scheduled maintenance on Saturday',
     received: 'Yesterday',
-    preview: 'NorthStar ERP will be unavailable from 6 to 8 AM…',
-    body: ['NorthStar ERP will be unavailable from 6 to 8 AM on Saturday for updates.\n\nPlant IT'],
+    preview: 'Odoo will be unavailable from 6 to 8 AM…',
+    body: ['Odoo will be unavailable from 6 to 8 AM on Saturday for updates.\n\nPlant IT'],
   },
 ];
 
@@ -241,3 +241,25 @@ export const VAR_SOURCE: Record<VarKey, string> = {
 };
 
 export const fieldLabel = (k: VarKey) => FIELD_LABEL[k];
+
+// ---------- Team emails the knowledge base learns from ----------
+// Sent to the demo inbox with the order emails (npm run email:send -- --context).
+
+const ctx = (id: string, fromName: string, company: string, subject: string, body: string): MailMessage => ({
+  id, fromName, fromEmail: 'demo@example.com', company, subject, received: 'Today', preview: body.slice(0, 60), body: [body],
+});
+
+export const CONTEXT_EMAILS: MailMessage[] = [
+  ctx('c-price-rule', 'Dana Ortiz', 'Planning', 'Price changes on supplier orders',
+    'Hi buyers,\n\nFrom now on, if a supplier confirms a unit price that is more than 5% above our last order for the same item, please do not save the purchase order in Odoo. Save it as a draft and send it to me for approval first. Anything within 5% is fine to save as usual.\n\nThanks,\nDana Ortiz\nPlanning Manager'),
+  ctx('c-safety-stock', 'Dana Ortiz', 'Planning', 'Re: Q4 safety stock levels',
+    "Let's keep HRC-2MM at two weeks of cover through December. Ridgeline Steel Co. is our main supplier for it; Fernwood Fasteners supplies the HXB-M8-40 bolts we use on the same line.\n\nDana"),
+  ctx('c-maintenance', 'Plant IT', 'Plant IT', 'Scheduled maintenance on Saturday',
+    'Odoo will be unavailable from 6 to 8 AM on Saturday for updates. Purchase orders received during that window should be entered after 8 AM.\n\nPlant IT'),
+  ctx('c-freight', 'Kestrel Freight', 'Kestrel Freight', 'Shipment 88213 picked up',
+    'Your shipment from Fernwood Fasteners was picked up at 7:58 AM. Kestrel Freight handles all Fernwood deliveries to your plant. Estimated arrival: Nov 3.\n\nKestrel Freight'),
+  ctx('c-surcharge', 'Priya Nair', 'Ridgeline Steel Co.', 'Mill surcharge from November',
+    'Hello,\n\nPlease note that a mill surcharge applies to hot-rolled sheet (HRC-2MM, HRC-3MM) from November, so unit prices on new orders may be higher than on your October orders.\n\nBest,\nPriya Nair\nRidgeline Steel Co.'),
+  ctx('c-dates', 'Marcus Lee', 'Brightwater Plastics', 'Order acknowledgment format',
+    'Hi,\n\nOur order desk now writes ship dates as "3 Dec 2026" and lays out acknowledgments as a table. Polypropylene pellets (PP-PEL-25) ship in 25 kg bags.\n\nMarcus Lee\nBrightwater Plastics, Order Desk'),
+];

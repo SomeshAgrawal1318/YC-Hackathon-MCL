@@ -1,12 +1,19 @@
 import { useSyncExternalStore } from 'react';
-import { applyAction, initialDesktop, materialize } from '../data/desktop';
+import { FIELD_LABEL, VAR_KEYS, applyAction, initialDesktop, materialize } from '../data/desktop';
+import { normalize } from '../data/normalize';
+import { emptyKnowledge, recordingSummary } from '../data/knowledge';
+import type { Knowledge } from '../data/knowledge';
 import { VARIATIONS, demoRecording } from '../data/scenario';
 import { planRun } from '../data/runs';
 import { buildWorkflow, defaultEdits } from '../data/workflow';
-import type { Action, DesktopState, PricePolicy, Recording, WorkflowEdits } from '../data/schema';
-import { bus } from './bus';
+import type { Action, DesktopState, LiveRun, PricePolicy, RawOsEvent, Recording, RecordingVideo, RunPlan, WorkflowEdits } from '../data/schema';
+import { bus, isElectron } from './bus';
+import { runInVms, runOnPc } from './runner';
+import { actorCall } from './actors';
+import { startVideo, stopVideo } from './video';
+import { workflowFromRecording } from './workflowBuilder';
 
-export type Tab = 'recordings' | 'workflows' | 'tests' | 'reports' | 'deploy';
+export type Tab = 'recordings' | 'workflows' | 'tests' | 'reports' | 'deploy' | 'knowledge';
 
 export interface Settings {
   buildMs: number;
@@ -14,10 +21,27 @@ export interface Settings {
   playbackSpeed: number;
 }
 
+/** Whether Trace can capture from Windows (trace-helper.exe is running), from Electron. */
+export interface TraceCapability {
+  os: boolean;
+  reason: string;
+  display?: { x: number; y: number; width: number; height: number; scaleFactor: number };
+}
+
 export interface State {
   view: 'app' | 'desktop';
   tab: Tab;
-  capture: { recording: boolean; startedAt: number; actions: Array<Action & { t: number }> };
+  capture: {
+    recording: boolean;
+    startedAt: number;
+    /** From the mock apps or the desktop simulator (fallback when OS capture is off). */
+    actions: Array<Action & { t: number }>;
+    /** From trace-helper (real capture). */
+    raw: RawOsEvent[];
+    video: boolean;
+    processing: boolean;
+  };
+  trace: TraceCapability;
   /** Live state of the in-app desktop simulator. */
   sim: DesktopState;
   recordings: Recording[];
@@ -29,8 +53,30 @@ export interface State {
   focus: { nodeId: string; range: [number, number]; ids: string[]; nonce: number } | null;
   /** Set when jumping from a recording event to its workflow node. */
   selectedEventId: string | null;
-  tests: { status: 'idle' | 'running' | 'done'; startedAt: number; speed: number; focusId: string };
+  tests: {
+    status: 'idle' | 'running' | 'done';
+    /** pc = runs in Gmail and Odoo on this PC; vm = one Freestyle VM per test; simulated = the old simulation. */
+    mode: 'pc' | 'vm' | 'simulated';
+    /** Where the next run goes, as picked on the Tests screen. */
+    preferred: 'pc' | 'vm';
+    startedAt: number;
+    speed: number;
+    focusId: string;
+    runs: Record<string, LiveRun>;
+    error: string | null;
+  };
   deploy: 'none' | 'shadow';
+  /** Whether test runs can use Freestyle VMs, from electron/vms.cjs. */
+  vm: { available: boolean; reason: string };
+  knowledge: {
+    data: Knowledge;
+    hasKey: boolean;
+    syncing: boolean;
+    progress: { stage: string; detail: string; at: number } | null;
+    error: string | null;
+    asking: boolean;
+    answer: { question: string; answer: string; citations: string[] } | null;
+  };
   settings: Settings;
   controlsOpen: boolean;
   notice: string | null;
@@ -38,11 +84,12 @@ export interface State {
 
 const initialSettings: Settings = { buildMs: 9000, runSpeed: 1, playbackSpeed: 2 };
 
-function initial(settings = initialSettings): State {
+function initial(settings = initialSettings, trace?: TraceCapability): State {
   return {
     view: 'app',
     tab: 'recordings',
-    capture: { recording: false, startedAt: 0, actions: [] },
+    capture: { recording: false, startedAt: 0, actions: [], raw: [], video: false, processing: false },
+    trace: trace ?? { os: false, reason: isElectron ? 'Connecting to Trace…' : 'Trace capture needs the desktop app.' },
     sim: initialDesktop(),
     recordings: [],
     recordingId: null,
@@ -51,8 +98,10 @@ function initial(settings = initialSettings): State {
     selectedNode: null,
     focus: null,
     selectedEventId: null,
-    tests: { status: 'idle', startedAt: 0, speed: settings.runSpeed, focusId: VARIATIONS[0].id },
+    tests: { status: 'idle', mode: isElectron ? 'pc' : 'simulated', preferred: 'pc', startedAt: 0, speed: settings.runSpeed, focusId: VARIATIONS[0].id, runs: {}, error: null },
     deploy: 'none',
+    vm: { available: false, reason: isElectron ? 'Checking Freestyle…' : 'VM runs need the desktop app.' },
+    knowledge: { data: emptyKnowledge(), hasKey: false, syncing: false, progress: null, error: null, asking: false, answer: null },
     settings,
     controlsOpen: false,
     notice: null,
@@ -94,20 +143,33 @@ export const currentWorkflow = (s: State = state) => buildWorkflow(s.edits);
 
 // ---------- Capture ----------
 
-export function startRecording() {
+export async function startRecording() {
   if (state.capture.recording) return;
-  setState({ capture: { recording: true, startedAt: Date.now(), actions: [] }, sim: initialDesktop() });
+  const os = state.trace.os;
+  setState({ capture: { recording: true, startedAt: Date.now(), actions: [], raw: [], video: false, processing: false }, sim: initialDesktop() });
   bus.send('trace:state', { recording: true });
+  // Real capture also records the screen. The events start flowing as soon as the helper is told.
+  if (os && isElectron) {
+    const ok = await startVideo();
+    if (state.capture.recording) setState({ capture: { ...state.capture, video: ok } });
+  }
 }
 
+/** From the mock apps and the desktop simulator, used only when OS capture is off. */
 export function record(a: Action) {
   const c = state.capture;
-  if (!c.recording) return;
+  if (!c.recording || state.trace.os) return;
   setState({ capture: { ...c, actions: [...c.actions, { ...a, t: Date.now() - c.startedAt }] } });
 }
 
-/** Coalesce raw keystroke actions into typing spans and drop no-op app switches. */
-function toRecording(actions: Array<Action & { t: number }>): Recording | null {
+function recordRaw(ev: RawOsEvent) {
+  const c = state.capture;
+  if (!c.recording) return;
+  setState({ capture: { ...c, raw: [...c.raw, ev] } });
+}
+
+/** Coalesce raw keystroke actions into typing spans and drop no-op app switches. Returns t0, the shift applied. */
+export function toRecording(actions: Array<Action & { t: number }>, min = { actions: 6, fills: 2 }): { rec: Recording; t0: number } | null {
   const merged: Array<Action & { t: number; dur?: number }> = [];
   let focus: string = 'desktop';
   for (const a of actions) {
@@ -119,11 +181,12 @@ function toRecording(actions: Array<Action & { t: number }>): Recording | null {
       continue;
     }
     if (a.app !== 'desktop' && a.app !== focus) {
-      merged.push({ kind: 'app_switch', app: a.app, t: Math.max(0, a.t - 1), target: { tid: `task:${a.app}`, role: 'Button', name: a.app === 'mail' ? 'Mailbox' : 'NorthStar ERP', path: ['Taskbar', 'Running applications'] } });
+      merged.push({ kind: 'app_switch', app: a.app, t: Math.max(0, a.t - 1), target: { tid: `task:${a.app}`, role: 'Window', name: a.app === 'mail' ? 'Gmail' : 'Odoo', path: [] } });
       focus = a.app;
     }
-    if (a.kind === 'type' && last && last.kind === 'type' && last.field === a.field) {
+    if ((a.kind === 'type' || a.kind === 'paste') && last && last.kind === 'type' && last.field && last.field === a.field) {
       last.value = a.value;
+      if (a.kind === 'paste') last.kind = 'paste';
       last.dur = Math.max(250, a.t - last.t);
       continue;
     }
@@ -131,31 +194,72 @@ function toRecording(actions: Array<Action & { t: number }>): Recording | null {
     merged.push({ ...a, dur: a.kind === 'type' ? 250 : undefined });
   }
   const fills = merged.filter((m) => (m.kind === 'type' || m.kind === 'paste') && m.field).length;
-  if (merged.length < 6 || fills < 2) return null;
+  if (merged.length < min.actions || fills < min.fills) return null;
   const t0 = Math.max(0, merged[0].t - 600);
   const shifted = merged.map((m) => ({ ...m, t: m.t - t0 }));
   const last = shifted[shifted.length - 1];
   return {
-    id: `rec-${Date.now().toString(36)}`,
-    title: 'Supplier order to purchase order',
-    source: 'live',
-    createdAt: Date.now(),
-    duration: last.t + (last.dur ?? 0) + 1200,
-    events: materialize(shifted),
-    inboxId: 'recording',
+    t0,
+    rec: {
+      id: `rec-${Date.now().toString(36)}`,
+      title: 'Supplier order to purchase order',
+      source: 'live',
+      createdAt: Date.now(),
+      duration: last.t + (last.dur ?? 0) + 1200,
+      events: materialize(shifted),
+      inboxId: 'recording',
+    },
   };
 }
 
-export function stopRecording() {
-  if (!state.capture.recording) return;
-  const live = toRecording(state.capture.actions);
-  const rec = live ?? demoRecording();
-  setState({
-    capture: { ...state.capture, recording: false },
-    notice: live ? null : 'Not enough was captured, so the demo recording is shown instead.',
-  });
+export async function stopRecording() {
+  const c = state.capture;
+  if (!c.recording) return;
+  setState({ capture: { ...c, recording: false, processing: true } });
   bus.send('trace:state', { recording: false });
+  const video = await stopVideo();
+  const raw = state.capture.raw;
+  const actions = state.trace.os ? normalize(raw, c.startedAt) : c.actions;
+  // A real capture is kept even when it's partial: the video is worth seeing. The mock path keeps the old bar.
+  const built = state.trace.os ? toRecording(actions, { actions: 3, fills: 1 }) : toRecording(actions);
+  let rec: Recording;
+  if (built) {
+    rec = { ...built.rec, raw: state.trace.os ? raw : undefined };
+    if (video && state.trace.display) {
+      const v: RecordingVideo = {
+        url: video.url,
+        blob: video.blob,
+        offsetMs: c.startedAt + built.t0 - video.startedAt,
+        width: video.width,
+        height: video.height,
+        display: state.trace.display,
+      };
+      rec.video = v;
+      // The video may run longer than the last action.
+      rec.duration = Math.max(rec.duration, Math.min(rec.duration + 4000, Date.now() - c.startedAt - built.t0));
+    }
+  } else {
+    rec = demoRecording();
+    if (video) URL.revokeObjectURL(video.url);
+  }
+  setState({
+    capture: { ...state.capture, processing: false },
+    notice: built
+      ? missingNotice(built.rec)
+      : state.trace.os
+        ? `Trace saw ${raw.length} event${raw.length === 1 ? "" : "s"} but not enough of the chore (open the email, then fill at least 2 fields in Odoo). The demo recording is shown instead.`
+        : 'Not enough was captured, so the demo recording is shown instead.',
+  });
   addRecording(rec);
+  if (built && rec.raw) learnFromRecording(rec);
+}
+
+/** Names the workflow values a live recording didn't show being entered. */
+function missingNotice(rec: Recording): string | null {
+  if (rec.source !== 'live') return null;
+  const seen = new Set(rec.events.filter((e) => (e.kind === 'type' || e.kind === 'paste') && e.field).map((e) => e.field));
+  const missing = VAR_KEYS.filter((k) => !seen.has(k)).map((k) => FIELD_LABEL[k]);
+  return missing.length ? `Recorded. Trace didn't see these Odoo fields being filled: ${missing.join(', ')}. The workflow still uses its predefined steps for them.` : null;
 }
 
 export function loadDemoRecording() {
@@ -172,22 +276,43 @@ function addRecording(rec: Recording) {
     selectedNode: null,
     focus: null,
     selectedEventId: null,
-    tests: { ...s.tests, status: 'idle' },
+    tests: { ...s.tests, status: 'idle', runs: {}, error: null },
     deploy: 'none',
   }));
-  startBuild();
+  startBuild(rec);
+}
+
+/** Saves the recording (events + raw OS events + video) to a folder, for workflow-building experiments. */
+export async function exportRecording(rec: Recording): Promise<string | null> {
+  const { video, ...rest } = rec;
+  const json = JSON.stringify({ ...rest, video: video ? { offsetMs: video.offsetMs, width: video.width, height: video.height, display: video.display, file: 'video.webm' } : undefined }, null, 2);
+  const buf = video?.blob ? await video.blob.arrayBuffer() : null;
+  if (window.mclBridge?.invoke) return window.mclBridge.invoke('trace:export', { id: rec.id, json, video: buf });
+  // Browser: download the JSON.
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  a.download = `${rec.id}.json`;
+  a.click();
+  return null;
 }
 
 // ---------- Workflow ----------
 
 let buildToken = 0;
-export function startBuild() {
+export function startBuild(rec: Recording | null = currentRecording()) {
   const token = ++buildToken;
   const ms = state.settings.buildMs;
   setState({ build: { status: 'building', startedAt: Date.now(), ms } });
-  later(ms, () => {
-    if (token === buildToken) setState({ build: { ...state.build, status: 'ready' } });
-  });
+  const done = (edits: WorkflowEdits | null) => {
+    if (token !== buildToken) return;
+    setState((s) => ({ build: { ...s.build, status: 'ready' }, edits: edits ?? s.edits }));
+  };
+  // src/lib/workflowBuilder.ts: field mappings from the recording, the price rule from the
+  // knowledge base or the order history.
+  const built = rec ? workflowFromRecording(rec, state.knowledge.data) : Promise.resolve(null);
+  Promise.all([built, new Promise((r) => later(ms, () => r(null)))])
+    .then(([edits]) => done(edits))
+    .catch(() => done(null));
 }
 
 export function skipBuild() {
@@ -223,19 +348,151 @@ export function showEventInWorkflow(nodeId: string) {
 // ---------- Tests ----------
 
 export const RUN_STAGGER = 450;
+let runToken = 0;
 
-export function runTests() {
+const queued = (id: string): LiveRun => ({ variationId: id, status: 'queued', startedAt: 0, steps: [], active: null, values: {}, shot: null, plan: null });
+
+export function setTestTarget(preferred: 'pc' | 'vm') {
+  setState((s) => ({ tests: { ...s.tests, preferred } }));
+}
+
+export async function refreshVmStatus() {
+  const invoke = window.mclBridge?.invoke;
+  if (!invoke) return;
+  try {
+    const vm = (await invoke('vm:status')) as State['vm'];
+    setState((s) => ({ vm, tests: { ...s.tests, preferred: s.tests.preferred === 'pc' && vm.available && !s.tests.runs[VARIATIONS[0].id] ? 'vm' : s.tests.preferred } }));
+  } catch (e) {
+    setState({ vm: { available: false, reason: (e as Error).message } });
+  }
+}
+
+/** Runs the approved workflow for real: on this PC or in Freestyle VMs (desktop app), or simulates it (browser). */
+export function runTests(only?: string[], target: 'pc' | 'vm' = state.tests.preferred) {
+  if (!isElectron) return runSimulated();
+  const mode = target === 'vm' && state.vm.available ? 'vm' : 'pc';
+  const wf = currentWorkflow();
+  const variations = only ? VARIATIONS.filter((v) => only.includes(v.id)) : VARIATIONS;
+  const token = ++runToken;
+  const runs: Record<string, LiveRun> = {};
+  for (const v of variations) runs[v.id] = queued(v.id);
+  setState({ tab: 'tests', tests: { ...state.tests, status: 'running', mode, startedAt: Date.now(), runs, error: null, focusId: variations[0].id } });
+  const update = (id: string, patch: Partial<LiveRun>) => {
+    if (token !== runToken) return;
+    setState((s) => {
+      const prev = s.tests.runs[id] ?? queued(id);
+      // On this PC tests run one at a time, so follow the one running; VMs run together, so stay put.
+      const focusId = patch.status === 'running' && s.tests.mode === 'pc' ? id : s.tests.focusId;
+      return { tests: { ...s.tests, focusId, runs: { ...s.tests.runs, [id]: { ...prev, ...patch } } } };
+    });
+  };
+  const run = mode === 'vm' ? runInVms : runOnPc;
+  run(wf, variations, { update, cancelled: () => token !== runToken })
+    .then(() => {
+      if (token === runToken) setState((s) => ({ tests: { ...s.tests, status: 'done' } }));
+    })
+    .catch((e: Error) => {
+      if (token === runToken) setState((s) => ({ tests: { ...s.tests, status: 'idle', runs: {}, error: e.message } }));
+    });
+}
+
+export function stopTests() {
+  runToken++;
+  setState((s) => ({ tests: { ...s.tests, status: Object.values(s.tests.runs).some((r) => r.plan) ? 'done' : 'idle' } }));
+}
+
+/** The old simulated VM runs, kept as a fallback when the real apps aren't available. */
+export function runSimulated() {
   const wf = currentWorkflow();
   const speed = state.settings.runSpeed;
   const total = Math.max(...VARIATIONS.map((v, i) => planRun(wf, v).duration + i * RUN_STAGGER));
-  setState({ tests: { status: 'running', startedAt: Date.now(), speed, focusId: state.tests.focusId }, tab: 'tests' });
+  setState({ tests: { ...state.tests, status: 'running', mode: 'simulated', startedAt: Date.now(), speed, runs: {}, error: null }, tab: 'tests' });
   later(total / speed + 300, () => {
-    if (state.tests.status === 'running') setState({ tests: { ...state.tests, status: 'done' } });
+    if (state.tests.status === 'running' && state.tests.mode === 'simulated') setState({ tests: { ...state.tests, status: 'done' } });
   });
 }
 
+/** Results for the report: real runs on this PC, or the simulation. */
+export function runPlans(s: State = state): RunPlan[] {
+  if (s.tests.mode === 'pc' || s.tests.mode === 'vm') return VARIATIONS.map((v) => s.tests.runs[v.id]?.plan).filter((p): p is RunPlan => !!p);
+  const wf = buildWorkflow(s.edits);
+  return VARIATIONS.map((v) => planRun(wf, v));
+}
+
+// ---------- Knowledge base ----------
+
+const kbPatch = (p: Partial<State['knowledge']>) => setState((s) => ({ knowledge: { ...s.knowledge, ...p } }));
+const invoke = (channel: Parameters<NonNullable<NonNullable<typeof window.mclBridge>['invoke']>>[0], ...args: unknown[]) => {
+  const bridge = window.mclBridge;
+  if (!bridge?.invoke) return Promise.reject(new Error('The knowledge base needs the desktop app (npm run app).'));
+  return bridge.invoke(channel, ...args).catch((e: Error) => {
+    throw new Error(String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''));
+  });
+};
+
+export async function loadKnowledge() {
+  if (!isElectron) return;
+  try {
+    const r = (await invoke('kb:get')) as { kb: Knowledge; hasKey: boolean };
+    kbPatch({ data: r.kb, hasKey: r.hasKey });
+  } catch (e) {
+    kbPatch({ error: (e as Error).message });
+  }
+}
+
+/** Reads Odoo, then (with a Claude key) the Gmail inbox, and learns from what's new. */
+export async function syncKnowledge() {
+  if (state.knowledge.syncing) return;
+  kbPatch({ syncing: true, error: null });
+  try {
+    await invoke('kb:sync');
+  } catch (e) {
+    kbPatch({ error: (e as Error).message });
+  } finally {
+    kbPatch({ syncing: false });
+    void loadKnowledge();
+  }
+}
+
+export async function askKnowledge(question: string) {
+  if (!question.trim()) return;
+  kbPatch({ asking: true, error: null, answer: null });
+  try {
+    const r = (await invoke('kb:ask', question)) as { answer: string; citations: string[] };
+    kbPatch({ answer: { question, ...r } });
+  } catch (e) {
+    kbPatch({ error: (e as Error).message });
+  } finally {
+    kbPatch({ asking: false });
+  }
+}
+
+export async function resetKnowledge() {
+  try {
+    await invoke('kb:reset');
+    kbPatch({ answer: null, error: null, progress: null });
+  } catch (e) {
+    kbPatch({ error: (e as Error).message });
+  }
+}
+
+/** A finished live recording teaches the knowledge base how the task is done (needs a Claude key). */
+function learnFromRecording(rec: Recording) {
+  if (!isElectron || !state.knowledge.hasKey) return;
+  invoke('kb:ingest-recording', { id: rec.id, title: rec.title, summary: recordingSummary(rec) }).catch((e: Error) => kbPatch({ error: e.message }));
+}
+
+/**
+ * Starts real shadow mode in the ShadowDeployment actor with the approved answers. Without the actors
+ * server the dashboard falls back to the simulated preview.
+ */
 export function deployShadow() {
   setState({ deploy: 'shadow', tab: 'deploy' });
+  if (!isElectron) return;
+  const { answer, threshold, mappings } = state.edits;
+  actorCall('shadowDeploy', { edits: { answer, threshold, mappings } }).catch((e: Error) =>
+    setState({ notice: `Shadow mode could not start live (${e.message}). Showing the simulated preview.` }),
+  );
 }
 
 // ---------- Demo plumbing ----------
@@ -244,10 +501,18 @@ export function resetDemo() {
   timers.forEach((id) => clearTimeout(id));
   timers = [];
   buildToken++;
-  state = initial(state.settings);
+  runToken++;
+  void stopVideo();
+  const knowledge = state.knowledge;
+  state = { ...initial(state.settings, state.trace), knowledge };
   subs.forEach((f) => f());
   bus.send('demo:reset');
   bus.send('trace:state', { recording: false });
+  if (isElectron) {
+    // Shadow results and pending approvals belong to the demo run being reset.
+    actorCall('shadowReset').catch(() => undefined);
+    actorCall('approvalClear').catch(() => undefined);
+  }
 }
 
 export function setSettings(p: Partial<Settings>) {
@@ -260,11 +525,19 @@ export function simAction(a: Action) {
   record(a);
 }
 
-/** Wire up messages from the tray (Electron) and the separate Mailbox / ERP windows. */
+/** Wire up messages from the tray, the Trace helper and (fallback) the mock app windows. */
 export function connectMainWindow() {
   const offs = [
     bus.on('trace:event', (a: Action) => record(a)),
+    bus.on('trace:raw', (ev: RawOsEvent) => recordRaw(ev)),
+    bus.on('trace:capability', (c: TraceCapability) => setState({ trace: c })),
+    bus.on('shell:error', (d: { message: string }) => setState({ notice: d.message })),
     bus.on('trace:command', (d: { cmd: 'start' | 'stop' }) => (d.cmd === 'start' ? startRecording() : stopRecording())),
+    bus.on('kb:updated', (data: Knowledge) => kbPatch({ data })),
+    bus.on('kb:progress', (progress: State['knowledge']['progress']) => kbPatch({ progress })),
   ];
+  bus.send('trace:hello');
+  void loadKnowledge();
+  void refreshVmStatus();
   return () => offs.forEach((f) => f());
 }

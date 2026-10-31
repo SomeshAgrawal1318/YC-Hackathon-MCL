@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { T, applyAction, initialDesktop } from '../data/desktop';
 import { RECORDING_INBOX } from '../data/scenario';
-import type { Action } from '../data/schema';
+import type { Action, DesktopState } from '../data/schema';
 import { bus } from '../lib/bus';
 import { MockErp } from './MockErp';
 import { MockMail } from './MockMail';
@@ -11,7 +11,7 @@ import { MockMail } from './MockMail';
  * Every action goes to the MCL main window over the bus, which records it while Trace is on.
  */
 export function MockWindow({ app }: { app: 'mail' | 'erp' }) {
-  const [state, setState] = useState(() => ({ ...initialDesktop(), focus: app }));
+  const [state, setState] = useState<DesktopState>(() => ({ ...initialDesktop(), focus: app }));
 
   useEffect(() => {
     document.title = app === 'mail' ? 'Mailbox' : 'NorthStar ERP';

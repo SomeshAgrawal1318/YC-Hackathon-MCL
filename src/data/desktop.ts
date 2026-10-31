@@ -1,13 +1,14 @@
 import type { A11yTarget, Action, AppId, DesktopState, FieldKey, MailMessage, TraceEvent, VarKey } from './schema';
 
+/** Field names as Odoo's purchase order form shows them. */
 export const FIELD_LABEL: Record<FieldKey, string> = {
-  supplier: 'Supplier',
-  po_number: 'PO number',
-  item_sku: 'Item SKU',
+  supplier: 'Vendor',
+  po_number: 'Vendor Reference',
+  item_sku: 'Product',
   quantity: 'Quantity',
-  unit_price: 'Unit price',
-  delivery_date: 'Delivery date',
-  notes: 'Notes',
+  unit_price: 'Unit Price',
+  delivery_date: 'Expected Arrival',
+  notes: 'Terms and conditions',
 };
 
 export const FORM_FIELDS: FieldKey[] = ['supplier', 'po_number', 'item_sku', 'quantity', 'unit_price', 'delivery_date', 'notes'];
@@ -15,8 +16,8 @@ export const VAR_KEYS: VarKey[] = ['supplier', 'po_number', 'item_sku', 'quantit
 
 export const APP_NAME: Record<AppId, string> = {
   desktop: 'Desktop',
-  mail: 'Mailbox',
-  erp: 'NorthStar ERP',
+  mail: 'Gmail',
+  erp: 'Odoo',
 };
 
 /** Accessibility targets, named the way the Windows UI Automation tree would name them. */

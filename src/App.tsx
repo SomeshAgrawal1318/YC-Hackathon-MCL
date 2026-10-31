@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { DemoControls } from './components/DemoControls';
-import { IconCheck, IconDeploy, IconRecordings, IconReport, IconVm, IconWorkflow, Mark, TraceGlyph } from './components/Icons';
+import { IconCheck, IconDeploy, IconKnowledge, IconRecordings, IconReport, IconVm, IconWorkflow, Mark, TraceGlyph } from './components/Icons';
 import { MockWindow } from './components/MockWindow';
 import { isElectron, bus } from './lib/bus';
 import { fmt } from './lib/format';
 import { useFrameClock } from './lib/hooks';
 import { connectMainWindow, getState, resetDemo, setState, startRecording, stopRecording, useStore } from './lib/store';
 import type { State, Tab } from './lib/store';
+import { ApprovalsScreen } from './screens/ApprovalsScreen';
 import { DeployScreen } from './screens/DeployScreen';
 import { DesktopSim } from './screens/DesktopSim';
+import { KnowledgeScreen } from './screens/KnowledgeScreen';
 import { RecordingsScreen } from './screens/RecordingsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
 import { TestsScreen } from './screens/TestsScreen';
@@ -29,6 +31,7 @@ function useHashRoute() {
 export function App() {
   const route = useHashRoute();
   if (route === 'mail' || route === 'erp') return <MockWindow app={route} />;
+  if (route === 'dana') return <ApprovalsScreen />;
   return <MainApp />;
 }
 
@@ -69,6 +72,7 @@ function MainApp() {
     tests: <TestsScreen />,
     reports: <ReportsScreen />,
     deploy: <DeployScreen />,
+    knowledge: <KnowledgeScreen />,
   };
 
   return (
@@ -103,6 +107,12 @@ function Rail({ s }: { s: State }) {
     },
     { id: 'reports', label: 'Reports', icon: <IconReport />, badge: s.tests.status === 'done' ? <span className="nav-count">1</span> : null },
     { id: 'deploy', label: 'Deployments', icon: <IconDeploy />, badge: s.deploy === 'shadow' ? <span className="nav-count">Shadow</span> : null },
+    {
+      id: 'knowledge',
+      label: 'Knowledge',
+      icon: <IconKnowledge />,
+      badge: s.knowledge.syncing ? <i className="spinner" aria-label="Syncing" /> : Object.keys(s.knowledge.data.entities).length ? <span className="nav-count">{Object.keys(s.knowledge.data.entities).length}</span> : null,
+    },
   ];
 
   return (
@@ -118,13 +128,21 @@ function Rail({ s }: { s: State }) {
       <div className="rail-foot">
         <div className="trace-row">
           <TraceGlyph recording={recording} size={16} />
-          <span>{recording ? `Trace is recording, ${fmt(now - s.capture.startedAt, false)}` : 'Trace is idle'}</span>
+          <span title={s.trace.reason}>
+            {recording
+              ? `Trace is recording, ${fmt(now - s.capture.startedAt, false)}${s.trace.os ? ` · ${s.capture.raw.length} event${s.capture.raw.length === 1 ? "" : "s"}` : ''}`
+              : s.capture.processing
+                ? 'Building the recording…'
+                : s.trace.os
+                  ? 'Trace is ready'
+                  : 'Trace: OS capture off'}
+          </span>
         </div>
-        <button type="button" className={`trace-btn${recording ? ' is-rec' : ''}`} onClick={recording ? stopRecording : startRecording}>
+        <button type="button" className={`trace-btn${recording ? ' is-rec' : ''}`} onClick={recording ? stopRecording : startRecording} disabled={s.capture.processing}>
           {recording ? 'Stop recording' : 'Start recording'}
         </button>
         {isElectron ? (
-          <button type="button" className="rail-link" onClick={() => bus.send('shell:open-mock-apps')}>Open Mailbox and ERP</button>
+          <button type="button" className="rail-link" onClick={() => bus.send('shell:open-real-apps')}>Open Gmail and Odoo</button>
         ) : (
           <button type="button" className="rail-link" onClick={() => setState({ view: 'desktop' })}>Open the desktop simulator</button>
         )}

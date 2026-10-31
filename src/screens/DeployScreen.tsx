@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { IconCheck, IconDeploy, IconFlag, IconHand } from '../components/Icons';
+import { useEffect, useState } from 'react';
+import { IconCheck, IconClock, IconDeploy, IconFlag, IconHand } from '../components/Icons';
 import { SHADOW_DAYS, SHADOW_FEED, SHADOW_TOTALS } from '../data/shadow';
 import type { ShadowResult } from '../data/shadow';
+import type { ShadowDay } from '../data/shadowCompare';
+import { SHADOW, useActorState, type ShadowState } from '../lib/actors';
 import { deployShadow, setState, useStore } from '../lib/store';
 
 export function DeployScreen() {
@@ -50,17 +52,62 @@ function DeployIntro() {
   );
 }
 
-const RESULT_LABEL: Record<ShadowResult, string> = { matched: 'Matched', different: 'Different', escalated: 'Asked a buyer' };
+type FeedResult = ShadowResult | 'waiting';
 
+const RESULT_LABEL: Record<FeedResult, string> = { matched: 'Matched', different: 'Different', escalated: 'Asked a buyer', waiting: 'Waiting for the buyer' };
+const RESULT_PILL: Record<FeedResult, string> = { matched: 'completed', different: 'flagged', escalated: 'paused', waiting: 'wait' };
+
+interface FeedRow {
+  key: string;
+  time: string;
+  supplier: string;
+  po: string;
+  result: FeedResult;
+  note: string;
+}
+
+const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+/** Re-renders every second, for "last check 12 s ago". */
+function useNow() {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+/**
+ * Live from the ShadowDeployment actor when the actors server runs (npm run actors:dev); otherwise
+ * the simulated first week, labeled as a preview.
+ */
 function ShadowDashboard() {
-  const t = SHADOW_TOTALS;
-  const rate = (t.matched / t.handled) * 100;
+  const { state: live, connected } = useActorState<ShadowState>(SHADOW);
+  const now = useNow();
+  const isLive = connected && live?.status === 'watching';
+  const t = isLive ? live.totals : SHADOW_TOTALS;
+  const days = isLive ? live.days : SHADOW_DAYS;
+  const feed: FeedRow[] = isLive
+    ? live.feed.filter((f) => f.result !== 'skipped').map((f) => ({ key: f.id, time: clock(f.time), supplier: f.supplier, po: f.po, result: f.result as FeedResult, note: f.note }))
+    : SHADOW_FEED.map((f) => ({ key: f.po, ...f }));
+  const rate = t.handled ? (t.matched / t.handled) * 100 : null;
+  const ago = isLive && live.lastCheck ? Math.max(0, Math.round((now - live.lastCheck) / 1000)) : null;
+
   return (
     <div className="screen deploy">
       <header className="screen-head">
         <div>
           <h1>Shadow mode is on</h1>
-          <p className="preview-note">Preview: a simulated first week, so you can see what this page will show.</p>
+          {isLive ? (
+            <p className="live-note">
+              <i className="live-dot" /> Live: {live.source === 'imap' ? 'watching the demo inbox' : 'waiting for order emails'}
+              {ago !== null && <span className="muted"> · last check {ago < 60 ? `${ago} s` : `${Math.round(ago / 60)} min`} ago</span>}
+              {live.lastError && <span className="live-error" title={live.lastError}> · {live.lastError}</span>}
+            </p>
+          ) : (
+            <p className="preview-note">Preview: a simulated first week, so you can see what this page will show.</p>
+          )}
         </div>
         <div className="head-side">
           <button type="button" className="btn" disabled title={`Needs ${t.streakGoal - t.streak} more matching orders in a row`}>
@@ -71,7 +118,7 @@ function ShadowDashboard() {
 
       <div className="kpis">
         <div className="kpi panel">
-          <span className="kpi-n">{rate.toFixed(1)}%</span>
+          <span className="kpi-n">{rate === null ? '–' : `${rate.toFixed(1)}%`}</span>
           <span className="kpi-l">of drafts matched the buyer’s entry</span>
         </div>
         <div className="kpi panel">
@@ -92,15 +139,16 @@ function ShadowDashboard() {
       <div className="deploy-cols">
         <div className="panel chart-card">
           <h2>Daily match rate</h2>
-          <MatchChart />
+          <MatchChart days={days} goal={t.goalRate} />
         </div>
         <div className="panel feed-card">
           <h2>Latest comparisons</h2>
+          {!feed.length && <p className="muted">Waiting for the first order email…</p>}
           <ul className="feed">
-            {SHADOW_FEED.map((f) => (
-              <li key={f.po} className={`is-${f.result}`}>
-                <span className={`pill is-${f.result === 'matched' ? 'completed' : f.result === 'escalated' ? 'paused' : 'flagged'}`}>
-                  {f.result === 'matched' ? <IconCheck size={13} /> : f.result === 'escalated' ? <IconHand size={13} /> : <IconFlag size={13} />}
+            {feed.map((f) => (
+              <li key={f.key} className={`is-${f.result}`}>
+                <span className={`pill is-${RESULT_PILL[f.result]}`}>
+                  {f.result === 'matched' ? <IconCheck size={13} /> : f.result === 'escalated' ? <IconHand size={13} /> : f.result === 'waiting' ? <IconClock size={13} /> : <IconFlag size={13} />}
                   {RESULT_LABEL[f.result]}
                 </span>
                 <div>
@@ -117,22 +165,26 @@ function ShadowDashboard() {
   );
 }
 
-/** One series (match rate per day) against the go-live goal. Hover a day for its numbers. */
-function MatchChart() {
+/** One series (match rate per day) against the go-live goal. Hover a day for its numbers. Days without orders have no dot. */
+function MatchChart({ days, goal }: { days: ShadowDay[]; goal: number }) {
   const [hover, setHover] = useState<number | null>(null);
   const W = 560, H = 230, L = 44, R = 20, T = 18, B = 34;
-  const lo = 85, hi = 100;
-  const xs = (i: number) => L + (i * (W - L - R)) / (SHADOW_DAYS.length - 1);
+  const pts = days.map((d, i) => ({ ...d, rate: d.handled ? (d.matched / d.handled) * 100 : null, x: L + (i * (W - L - R)) / Math.max(1, days.length - 1) }));
+  const rates = pts.flatMap((p) => (p.rate === null ? [] : [p.rate]));
+  // The simulated week sits between 85% and 100%; live data can be anywhere.
+  const lo = Math.min(85, Math.floor(Math.min(100, ...rates) / 10) * 10);
+  const hi = 100;
   const ys = (v: number) => T + ((hi - v) / (hi - lo)) * (H - T - B);
-  const pts = SHADOW_DAYS.map((d, i) => ({ ...d, rate: (d.matched / d.handled) * 100, x: xs(i) }));
-  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x},${ys(p.rate)}`).join(' ');
-  const goal = SHADOW_TOTALS.goalRate;
+  const ticks = lo >= 85 ? [85, 90, 95, 100] : [lo, (lo + hi) / 2, hi].map((v) => Math.round(v));
+  const withData = pts.filter((p) => p.rate !== null);
+  const path = withData.map((p, i) => `${i ? 'L' : 'M'}${p.x},${ys(p.rate!)}`).join(' ');
   const h = hover !== null ? pts[hover] : null;
+  const lastPt = withData[withData.length - 1];
 
   return (
     <div className="chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Daily match rate, Monday to Sunday" onMouseLeave={() => setHover(null)}>
-        {[85, 90, 95, 100].map((v) => (
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Daily match rate, ${days[0]?.day} to ${days[days.length - 1]?.day}`} onMouseLeave={() => setHover(null)}>
+        {ticks.map((v) => (
           <g key={v}>
             <line x1={L} x2={W - R} y1={ys(v)} y2={ys(v)} className="grid" />
             <text x={L - 8} y={ys(v) + 4} className="axis" textAnchor="end">{v}%</text>
@@ -141,28 +193,30 @@ function MatchChart() {
         <line x1={L} x2={W - R} y1={ys(goal)} y2={ys(goal)} className="goal" />
         <text x={W - R} y={ys(goal) - 6} className="goal-label" textAnchor="end">Go-live goal {goal}%</text>
         {h && <line x1={h.x} x2={h.x} y1={T} y2={H - B} className="crosshair" />}
-        <path d={path} className="series" />
+        {withData.length > 1 && <path d={path} className="series" />}
         {pts.map((p, i) => (
-          <g key={p.day}>
-            <circle cx={p.x} cy={ys(p.rate)} r={hover === i ? 5.5 : 4} className="dot" />
+          <g key={`${p.day}-${i}`}>
+            {p.rate !== null && <circle cx={p.x} cy={ys(p.rate)} r={hover === i ? 5.5 : 4} className="dot" />}
             <text x={p.x} y={H - 12} className="axis" textAnchor="middle">{p.day}</text>
             <rect x={p.x - 30} y={T} width={60} height={H - T - B} fill="transparent" onMouseEnter={() => setHover(i)} />
           </g>
         ))}
-        <text x={pts[pts.length - 1].x - 8} y={ys(pts[pts.length - 1].rate) - 10} className="direct-label" textAnchor="end">
-          {pts[pts.length - 1].rate.toFixed(0)}%
-        </text>
+        {lastPt && (
+          <text x={lastPt.x - 8} y={ys(lastPt.rate!) - 10} className="direct-label" textAnchor="end">
+            {lastPt.rate!.toFixed(0)}%
+          </text>
+        )}
       </svg>
       {h && (
         <div className="chart-tip" style={{ left: `${(h.x / W) * 100}%` }}>
-          <b>{h.day}</b> {h.rate.toFixed(1)}% matched
+          <b>{h.day}</b> {h.rate === null ? 'no orders' : `${h.rate.toFixed(1)}% matched`}
           <span className="muted">{h.matched} of {h.handled} orders</span>
         </div>
       )}
       <table className="sr-only">
         <caption>Daily match rate</caption>
         <thead><tr><th>Day</th><th>Orders</th><th>Matched</th></tr></thead>
-        <tbody>{SHADOW_DAYS.map((d) => <tr key={d.day}><td>{d.day}</td><td>{d.handled}</td><td>{d.matched}</td></tr>)}</tbody>
+        <tbody>{days.map((d, i) => <tr key={`${d.day}-${i}`}><td>{d.day}</td><td>{d.handled}</td><td>{d.matched}</td></tr>)}</tbody>
       </table>
     </div>
   );

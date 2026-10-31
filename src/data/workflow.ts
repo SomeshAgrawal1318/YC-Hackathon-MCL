@@ -62,7 +62,7 @@ export function buildWorkflow(edits: WorkflowEdits): Workflow {
 
   add({
     id: 'trigger', kind: 'trigger', title: 'New order email from a supplier',
-    detail: 'Starts when an order confirmation lands in the Mailbox inbox.',
+    detail: 'Starts when an order confirmation lands in the Gmail inbox.',
     source: { tidPrefixes: ['task:mail', 'mail:msg:'] },
   });
   add({
@@ -72,14 +72,14 @@ export function buildWorkflow(edits: WorkflowEdits): Workflow {
   });
   add({
     id: 'open', kind: 'open', title: 'Open a new purchase order',
-    detail: 'NorthStar ERP, Purchasing, New purchase order',
+    detail: 'Odoo, Purchase, New request for quotation',
     source: { tidPrefixes: ['task:erp', 'erp:new-po'] },
   });
   colX = COL_B;
   y = 0;
   add({
     id: 'fill', kind: 'fill', title: 'Fill in the purchase order',
-    detail: 'Notes stays empty, like in the recording.',
+    detail: 'Terms and conditions stay empty, like in the recording.',
     source: { tidPrefixes: ['erp:field:'] },
   });
   link('trigger', 'extract');
@@ -90,7 +90,7 @@ export function buildWorkflow(edits: WorkflowEdits): Workflow {
   const over = `Over ${edits.threshold}%`;
   const saveNode = {
     id: 'save', kind: 'save' as const, title: 'Save the purchase order',
-    detail: 'Clicks Save and checks for the confirmation.',
+    detail: 'Clicks Save and checks that Odoo saved it.',
     source: { tidPrefixes: ['erp:save'] }, questionId: policy ? undefined : PRICE_QUESTION.id,
   };
   const flagNode = {

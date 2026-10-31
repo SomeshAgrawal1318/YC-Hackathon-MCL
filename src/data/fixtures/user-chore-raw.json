@@ -1,0 +1,929 @@
+{
+  "startedAt": 1793411142051,
+  "note": "First real capture (2026-10-30), recorded before field tracking: picked values are missing. Apps re-tagged by URL.",
+  "raw": [
+    {
+      "type": "event",
+      "kind": "shortcut",
+      "ts": 1793411143436,
+      "hwnd": 1246092,
+      "process": "explorer.exe",
+      "window": "Task Switching",
+      "element": {
+        "role": "Pane",
+        "name": "",
+        "automationId": "",
+        "className": "Windows.UI.Input.InputSite.WindowClass",
+        "path": [
+          "Task Switching"
+        ],
+        "rect": [
+          0,
+          0,
+          1440,
+          852
+        ]
+      },
+      "keys": "Tab",
+      "app": "other"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411143439,
+      "hwnd": 131492,
+      "process": "explorer.exe",
+      "window": "",
+      "app": "other"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411143467,
+      "hwnd": 1246092,
+      "process": "explorer.exe",
+      "window": "Task Switching",
+      "app": "other"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411144076,
+      "hwnd": 66054,
+      "process": "explorer.exe",
+      "window": "",
+      "app": "other"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411144081,
+      "hwnd": 200088,
+      "process": "chrome.exe",
+      "window": "Inbox (2) - customermontecarlo@gmail.com - Gmail - Google Chrome",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "app": "mail"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411144092,
+      "hwnd": 1246092,
+      "process": "explorer.exe",
+      "window": "Task Switching",
+      "app": "other"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411146887,
+      "hwnd": 200088,
+      "process": "chrome.exe",
+      "window": "Inbox (2) - customermontecarlo@gmail.com - Gmail - Google Chrome",
+      "element": {
+        "role": "DataItem",
+        "name": "Priya Nair, Ridgeli.",
+        "automationId": "",
+        "className": "yX xY ulKHrd ",
+        "path": [
+          "Inbox (2) - customermontecarlo@gmail.com - Gmail - Google Chrome",
+          "Inbox (2) - customermontecarlo@gmail.com - Gmail",
+          "Primary"
+        ],
+        "rect": [
+          298,
+          1422,
+          400,
+          40
+        ]
+      },
+      "point": [
+        627,
+        1440
+      ],
+      "button": "left",
+      "url": "https://mail.google.com/mail/u/0/#inbox",
+      "app": "mail"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411149473,
+      "hwnd": 200088,
+      "process": "chrome.exe",
+      "window": "Order confirmation for PO-4471 - customermontecarlo@gmail.com - Gmail - Google Chrome",
+      "element": {
+        "role": "ListItem",
+        "name": "Priya Nair, Ridgeline Steel Co. suppliermontecarlo@gmail.com 5:52 PM (52 minutes ago) Not starred Add reaction Reply More message options to me Show details Hi team, Thanks for the order. Here are the confirmed details: PO number: PO-4471 Item: HRC-2MM hot-rolled steel sheet, 2 mm, 4 x 8 ft Quantity: 500 sheets Unit price: $38.50 Delivery date: 2026-11-12 Best, Priya Nair Ridgeline Steel Co. ",
+        "automationId": "",
+        "className": "h7 ie",
+        "path": [
+          "Order confirmation for PO-4471 - customermontecarlo@gmail.com - Gmail"
+        ],
+        "rect": [
+          146,
+          494,
+          1352,
+          683
+        ]
+      },
+      "point": [
+        491,
+        787
+      ],
+      "button": "left",
+      "url": "https://mail.google.com/mail/u/0/#inbox/FMfcgzQjggmmlDbDrhqCwfzKkgSMwbSH",
+      "app": "mail"
+    },
+    {
+      "type": "event",
+      "kind": "dblclick",
+      "ts": 1793411149651,
+      "hwnd": 200088,
+      "process": "chrome.exe",
+      "window": "Order confirmation for PO-4471 - customermontecarlo@gmail.com - Gmail - Google Chrome",
+      "element": {
+        "role": "ListItem",
+        "name": "Priya Nair, Ridgeline Steel Co. suppliermontecarlo@gmail.com 5:52 PM (52 minutes ago) Not starred Add reaction Reply More message options to me Show details Hi team, Thanks for the order. Here are the confirmed details: PO number: PO-4471 Item: HRC-2MM hot-rolled steel sheet, 2 mm, 4 x 8 ft Quantity: 500 sheets Unit price: $38.50 Delivery date: 2026-11-12 Best, Priya Nair Ridgeline Steel Co. ",
+        "automationId": "",
+        "className": "h7 ie",
+        "path": [
+          "Order confirmation for PO-4471 - customermontecarlo@gmail.com - Gmail"
+        ],
+        "rect": [
+          146,
+          494,
+          1352,
+          683
+        ]
+      },
+      "point": [
+        491,
+        787
+      ],
+      "button": "left",
+      "url": "https://mail.google.com/mail/u/0/#inbox/FMfcgzQjggmmlDbDrhqCwfzKkgSMwbSH",
+      "app": "mail"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411151548,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "Requests for Quotation - Google Chrome",
+      "element": {
+        "role": "Button",
+        "name": "New",
+        "automationId": "",
+        "className": "btn btn-primary o_list_button_add",
+        "path": [
+          "Requests for Quotation - Google Chrome",
+          "Requests for Quotation"
+        ],
+        "rect": [
+          1474,
+          282,
+          102,
+          66
+        ]
+      },
+      "point": [
+        1489,
+        321
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411151550,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "Requests for Quotation - Google Chrome",
+      "url": "http://127.0.0.1:8069/odoo/purchase",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "shortcut",
+      "ts": 1793411153661,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Edit",
+        "name": "Vendor?",
+        "automationId": "partner_id_0",
+        "className": "o_input",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1789,
+          672,
+          1027,
+          52
+        ]
+      },
+      "keys": "Ctrl+C",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411154700,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Edit",
+        "name": "Vendor?",
+        "automationId": "partner_id_0",
+        "className": "o_input",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1789,
+          672,
+          1027,
+          52
+        ],
+        "value": ""
+      },
+      "point": [
+        1982,
+        711
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411162590,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_row",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1762,
+          984,
+          1059,
+          56
+        ]
+      },
+      "point": [
+        1946,
+        984
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411168349,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Edit",
+        "name": "Order Deadline?",
+        "automationId": "date_order_0",
+        "className": "o_input cursor-pointer",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1767,
+          690,
+          1049,
+          52
+        ],
+        "value": "10/30/2026 18:45:52"
+      },
+      "point": [
+        2048,
+        716
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411171085,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          -172,
+          1406,
+          3284
+        ]
+      },
+      "point": [
+        2478,
+        395
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411174110,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          -172,
+          1406,
+          3284
+        ]
+      },
+      "point": [
+        2312,
+        592
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411176792,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          -172,
+          1406,
+          3284
+        ]
+      },
+      "point": [
+        2511,
+        386
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411181031,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          -172,
+          1406,
+          3284
+        ]
+      },
+      "point": [
+        2080,
+        385
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411183165,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          -172,
+          1406,
+          3284
+        ]
+      },
+      "point": [
+        2384,
+        583
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411184322,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          -172,
+          1406,
+          3284
+        ]
+      },
+      "point": [
+        2272,
+        1051
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411189720,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Button",
+        "name": "Add",
+        "automationId": "",
+        "className": "btn btn-secondary o-kanban-button-new",
+        "path": [
+          "New - Google Chrome",
+          "New",
+          "Control panel buttons"
+        ],
+        "rect": [
+          1474,
+          914,
+          97,
+          66
+        ]
+      },
+      "point": [
+        1536,
+        949
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411191120,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Edit",
+        "name": "Order Deadline?",
+        "automationId": "date_order_0",
+        "className": "o_input cursor-pointer",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1767,
+          556,
+          1049,
+          52
+        ],
+        "value": "11/12/2026 18:45:52"
+      },
+      "point": [
+        1955,
+        576
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411191557,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_nosheet o_form_editable d-block",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1512,
+          475,
+          1296,
+          828
+        ]
+      },
+      "point": [
+        1938,
+        559
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411194609,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          118,
+          1406,
+          1760
+        ]
+      },
+      "point": [
+        1881,
+        699
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411199716,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          118,
+          1406,
+          1760
+        ]
+      },
+      "point": [
+        1889,
+        637
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "dblclick",
+      "ts": 1793411199881,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Edit",
+        "name": "Quantity",
+        "automationId": "product_qty_0",
+        "className": "o_input",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1761,
+          605,
+          1015,
+          52
+        ],
+        "value": "1.00"
+      },
+      "point": [
+        1889,
+        637
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "value",
+      "ts": 1793411200852,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Edit",
+        "name": "Quantity",
+        "automationId": "product_qty_0",
+        "className": "o_input",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1761,
+          605,
+          1015,
+          52
+        ],
+        "value": "500"
+      },
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411211509,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_form_renderer o_form_editable d-flex d-print-block flex-column o_form_dirty",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          118,
+          1406,
+          1760
+        ]
+      },
+      "point": [
+        1977,
+        1371
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411230171,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "RadioButton",
+        "name": "RFQ Sent",
+        "automationId": "",
+        "className": "btn btn-secondary o_arrow_button",
+        "path": [
+          "New - Google Chrome",
+          "New",
+          "Statusbar"
+        ],
+        "rect": [
+          1578,
+          398,
+          214,
+          66
+        ],
+        "value": ""
+      },
+      "point": [
+        1700,
+        408
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411233422,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_main_navbar d-print-none",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          174,
+          1436,
+          92
+        ]
+      },
+      "point": [
+        1594,
+        241
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411233914,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Group",
+        "name": "",
+        "automationId": "",
+        "className": "o_main_navbar d-print-none",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1442,
+          174,
+          1436,
+          92
+        ]
+      },
+      "point": [
+        1582,
+        234
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411234488,
+      "hwnd": 396602,
+      "process": "chrome.exe",
+      "window": "New - Google Chrome",
+      "element": {
+        "role": "Button",
+        "name": "",
+        "automationId": "",
+        "className": "o_back_button btn btn-link d-print-none px-1 py-0",
+        "path": [
+          "New - Google Chrome",
+          "New"
+        ],
+        "rect": [
+          1514,
+          174,
+          56,
+          90
+        ]
+      },
+      "point": [
+        1543,
+        223
+      ],
+      "button": "left",
+      "url": "http://127.0.0.1:8069/odoo/purchase/new",
+      "app": "erp"
+    },
+    {
+      "type": "event",
+      "kind": "click",
+      "ts": 1793411242221,
+      "hwnd": 131416,
+      "process": "explorer.exe",
+      "window": "",
+      "element": {
+        "role": "Button",
+        "name": "Electron - 1 running window",
+        "automationId": "Appid: C:\\Users\\somes\\Desktop\\mcl-hackathon-demo\\node_modules\\electron\\dist\\electron.exe",
+        "className": "Taskbar.TaskListButtonAutomationPeer",
+        "path": [
+          "Taskbar"
+        ],
+        "rect": [
+          2052,
+          1704,
+          88,
+          96
+        ]
+      },
+      "point": [
+        2089,
+        1772
+      ],
+      "button": "left",
+      "app": "other"
+    },
+    {
+      "type": "event",
+      "kind": "foreground",
+      "ts": 1793411242224,
+      "hwnd": 131416,
+      "process": "explorer.exe",
+      "window": "",
+      "app": "other"
+    }
+  ]
+}

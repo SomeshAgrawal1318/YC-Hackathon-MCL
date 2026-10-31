@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BuildMeter, useBuildProgress } from '../components/BuildProgress';
 import { IconDesktop, IconLink, IconPause, IconPlay, IconRecordings } from '../components/Icons';
 import { ReplayPlayer } from '../components/ReplayPlayer';
+import { VideoReplay } from '../components/VideoReplay';
 import { KIND_LABEL, Timeline } from '../components/Timeline';
 import { APP_NAME } from '../data/desktop';
 import { inboxFor, rawEventCount } from '../data/scenario';
@@ -10,7 +11,7 @@ import { nodeForEvent } from '../data/workflow';
 import { isElectron, bus } from '../lib/bus';
 import { fmt } from '../lib/format';
 import { usePlayback } from '../lib/hooks';
-import { currentRecording, currentWorkflow, loadDemoRecording, setSettings, setState, showEventInWorkflow, useStore } from '../lib/store';
+import { currentRecording, currentWorkflow, exportRecording, setSettings, setState, showEventInWorkflow, useStore } from '../lib/store';
 
 export function RecordingsScreen() {
   const s = useStore();
@@ -20,21 +21,23 @@ export function RecordingsScreen() {
 }
 
 function EmptyRecordings() {
+  const s = useStore();
   return (
     <div className="screen empty">
       <IconRecordings size={40} />
-      <h1>No recordings yet</h1>
-      <p>Start Trace from the system tray, do the task once, then stop recording. The recording opens here.</p>
+      <h1>{s.capture.processing ? 'Building the recording…' : 'No recordings yet'}</h1>
+      <p>Start Trace from the system tray, do the task once in Gmail and Odoo, then stop recording. The recording opens here.</p>
+      <p className={`trace-status${s.trace.os ? ' is-on' : ''}`}><i aria-hidden /> {s.trace.reason}</p>
       <div className="row">
         {isElectron ? (
-          <button type="button" className="btn" onClick={() => bus.send('shell:open-mock-apps')}>Open Mailbox and ERP</button>
+          <button type="button" className="btn" onClick={() => bus.send('shell:open-real-apps')}>Open Gmail and Odoo</button>
         ) : (
           <button type="button" className="btn" onClick={() => setState({ view: 'desktop' })}>
             <IconDesktop size={16} /> Open the desktop simulator
           </button>
         )}
-        <button type="button" className="btn is-quiet" onClick={loadDemoRecording}>Load the demo recording</button>
       </div>
+      {s.notice && <div className="notice" role="status">{s.notice}</div>}
     </div>
   );
 }
@@ -67,6 +70,7 @@ function RecordingView({ rec }: { rec: Recording }) {
   };
 
   const apps = Array.from(new Set(rec.events.map((e) => e.app).filter((a) => a !== 'desktop')));
+  const [exported, setExported] = useState<string | null>(null);
   const focusNode = s.focus ? wf.nodes.find((n) => n.id === s.focus!.nodeId) : null;
 
   return (
@@ -78,11 +82,16 @@ function RecordingView({ rec }: { rec: Recording }) {
             <div><dt>Length</dt><dd>{fmt(rec.duration, false)}</dd></div>
             <div><dt>Apps</dt><dd>{apps.map((a) => APP_NAME[a]).join(', ')}</dd></div>
             <div><dt>Actions</dt><dd>{rec.events.length}</dd></div>
-            <div><dt>Raw events</dt><dd>{rawEventCount(rec)}</dd></div>
-            <div><dt>Source</dt><dd>{rec.source === 'live' ? 'Captured just now' : 'Demo recording'}</dd></div>
+            <div><dt>Raw events</dt><dd>{rec.raw?.length ?? rawEventCount(rec)}</dd></div>
+            <div><dt>Source</dt><dd>{rec.source === 'live' ? (rec.raw ? 'Captured by Trace from Windows' : 'Captured in the app') : 'Demo recording'}</dd></div>
           </dl>
         </div>
         <div className="head-side">
+          {rec.source === 'live' && (
+            <button type="button" className="btn is-quiet" onClick={() => exportRecording(rec).then((dir) => setExported(dir ?? 'Downloaded'))} title={exported ?? 'Save the events, raw OS events and video to a folder'}>
+              {exported ? 'Exported' : 'Export recording'}
+            </button>
+          )}
           {s.build.status === 'building' ? (
             <div className="build-chip">
               <span><i className="spinner" /> Building the workflow</span>
@@ -103,7 +112,13 @@ function RecordingView({ rec }: { rec: Recording }) {
 
       <div className="rec-main">
         <div className="rec-player">
-          <ReplayPlayer events={rec.events} messages={inboxFor(rec.inboxId)} t={pb.t} recording />
+          {rec.video ? (
+            <VideoReplay video={rec.video} events={rec.events} t={pb.t} playing={pb.playing} speed={s.settings.playbackSpeed} selected={selected} />
+          ) : rec.raw ? (
+            <div className="live-shot"><span className="empty-shot">No screen video was recorded this time. The timeline below still has every event.</span></div>
+          ) : (
+            <ReplayPlayer events={rec.events} messages={inboxFor(rec.inboxId)} t={pb.t} recording />
+          )}
         </div>
         <aside className="rec-detail panel">
           {selected ? (
@@ -185,6 +200,9 @@ function EventDetail({ ev, nodeTitle, nodeId }: { ev: TraceEvent; nodeTitle: str
         {ev.value && ev.kind !== 'click' && (
           <div><dt>Value</dt><dd><code className="value">{ev.value}</code></dd></div>
         )}
+        {ev.target?.process && <div><dt>Process</dt><dd>{ev.target.process}</dd></div>}
+        {ev.target?.automationId && <div><dt>AutomationId</dt><dd><code className="value">{ev.target.automationId}</code></dd></div>}
+        {ev.target?.rect && <div><dt>On screen</dt><dd>{ev.target.rect[2]} × {ev.target.rect[3]} px at ({ev.target.rect[0]}, {ev.target.rect[1]})</dd></div>}
       </dl>
       {nodeTitle && nodeId && (
         <button type="button" className="link-btn" onClick={() => showEventInWorkflow(nodeId)}>

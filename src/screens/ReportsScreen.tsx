@@ -1,26 +1,31 @@
 import { useMemo, useState } from 'react';
 import { IconCheck, IconDeploy, IconReport, IconX } from '../components/Icons';
 import { ReplayPlayer } from '../components/ReplayPlayer';
+import { ApprovalControls } from '../components/ApprovalControls';
 import { FIELD_LABEL, VAR_KEYS } from '../data/desktop';
 import { VARIATIONS, inboxFor } from '../data/scenario';
-import { judge, planRun } from '../data/runs';
+import { judge } from '../data/runs';
 import type { RunResult } from '../data/runs';
 import { fmt } from '../lib/format';
-import { currentWorkflow, setState, useStore } from '../lib/store';
-import { EXPECT_LABEL, OUTCOME_LABEL, OutcomeIcon } from './TestsScreen';
+import { currentWorkflow, runPlans, setState, useStore } from '../lib/store';
+import { EXPECT_LABEL, OUTCOME_LABEL, OutcomeIcon, openInOdoo } from './TestsScreen';
 
 export function ReportsScreen() {
   const s = useStore();
   const wf = currentWorkflow(s);
-  const results = useMemo(() => VARIATIONS.map((v) => judge(wf, v, planRun(wf, v))), [s.edits]);
+  const results = useMemo(
+    () => runPlans(s).map((p) => judge(wf, VARIATIONS.find((v) => v.id === p.variationId)!, p)),
+    [s.edits, s.tests.runs, s.tests.mode],
+  );
   const [openId, setOpenId] = useState<string>(VARIATIONS[0].id);
+  const pc = s.tests.mode === 'pc' || s.tests.mode === 'vm';
 
-  if (s.tests.status !== 'done') {
+  if (s.tests.status !== 'done' || !results.length) {
     return (
       <div className="screen empty">
         <IconReport size={40} />
         <h1>No report yet</h1>
-        <p>The report appears when every test VM has finished.</p>
+        <p>The report appears when the test runs have finished.</p>
         <button type="button" className="btn" onClick={() => setState({ tab: 'tests' })}>Go to test runs</button>
       </div>
     );
@@ -42,7 +47,7 @@ export function ReportsScreen() {
             <div><dt>Saved</dt><dd>{count('completed')}</dd></div>
             <div><dt>Asked a buyer</dt><dd>{count('paused')}</dd></div>
             <div><dt>Flagged</dt><dd>{count('flagged')}</dd></div>
-            <div><dt>Average run</dt><dd>{fmt(avg, false)} after the VM starts</dd></div>
+            <div><dt>Average run</dt><dd>{fmt(avg, false)} {s.tests.mode === 'vm' ? 'per email, each in a fresh VM' : pc ? 'per email, on this PC' : 'after the VM starts'}</dd></div>
           </dl>
         </div>
         <div className="head-side">
@@ -60,13 +65,13 @@ export function ReportsScreen() {
                 <th>Test</th>
                 <th>Expected</th>
                 <th>What happened</th>
-                <th>ERP fields</th>
+                <th>Odoo fields</th>
                 <th>Time</th>
               </tr>
             </thead>
             <tbody>
-              {results.map((r, i) => {
-                const v = VARIATIONS[i];
+              {results.map((r) => {
+                const v = VARIATIONS.find((x) => x.id === r.plan.variationId)!;
                 return (
                   <tr key={v.id} className={openId === v.id ? 'is-open' : ''} onClick={() => setOpenId(v.id)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setOpenId(v.id)}>
                     <td>
@@ -100,6 +105,10 @@ function RunDetail({ r }: { r: RunResult }) {
     <div className="detail">
       <h2>{v.title}</h2>
       <p className="muted">{r.plan.outcomeNote}.</p>
+      {r.plan.record && (
+        <button type="button" className="link-btn odoo-link" onClick={() => openInOdoo(r.plan.record!.url)}>Open {r.plan.record.name} in Odoo</button>
+      )}
+      {r.plan.outcome === 'paused' && <ApprovalControls record={r.plan.record} />}
       <table className="cmp-table">
         <thead>
           <tr><th>Field</th><th>Expected</th><th>Entered</th></tr>
@@ -121,10 +130,14 @@ function RunDetail({ r }: { r: RunResult }) {
       </table>
       <h3>Step by step</h3>
       <ol className="shots">
-        {r.plan.steps.map((st) => (
+        {r.plan.steps.filter((st) => st.nodeId !== 'end').map((st) => (
           <li key={st.nodeId} className={`shot is-${st.state}`}>
             <div className="shot-img">
-              <ReplayPlayer events={r.plan.events} messages={inboxFor(v.id)} t={Math.max(r.plan.bootMs, st.t1 - 60)} agent />
+              {st.shot ? (
+                <img src={st.shot} alt={st.label} />
+              ) : r.plan.events.length ? (
+                <ReplayPlayer events={r.plan.events} messages={inboxFor(v.id)} t={Math.max(r.plan.bootMs, st.t1 - 60)} agent />
+              ) : null}
             </div>
             <span>{st.label}</span>
           </li>

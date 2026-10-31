@@ -2,3 +2,10 @@ node_modules
 dist
 .local-build
 *.log
+setup-status.txt
+.env.local
+native/trace-helper/target
+vm-spike.json
+vm-image.json
+vm-spike-*.png
+vm-image-check.png

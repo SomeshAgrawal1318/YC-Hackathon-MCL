@@ -24,6 +24,50 @@ export interface A11yTarget {
   role: string;
   name: string;
   path: string[];
+  /** From real capture: UI Automation AutomationId (the HTML id in Chrome). */
+  automationId?: string;
+  /** From real capture: screen rectangle in physical pixels [x, y, width, height]. */
+  rect?: [number, number, number, number];
+  /** From real capture: the process that owns the window. */
+  process?: string;
+}
+
+/** One line from trace-helper.exe, tagged by Electron with the app it came from. */
+export interface RawOsEvent {
+  type: 'event';
+  kind: 'click' | 'dblclick' | 'value' | 'shortcut' | 'clipboard' | 'foreground' | 'title';
+  ts: number;
+  hwnd: number;
+  process: string;
+  window: string;
+  app: 'mail' | 'erp' | 'other';
+  url?: string;
+  element?: {
+    role: string;
+    name: string;
+    automationId: string;
+    className: string;
+    path: string[];
+    rect: [number, number, number, number];
+    value?: string;
+    isPassword?: boolean;
+  };
+  point?: [number, number];
+  keys?: string;
+  text?: string;
+  button?: 'left' | 'right';
+}
+
+/** Screen video recorded alongside the events. */
+export interface RecordingVideo {
+  url: string;
+  /** Recording time t (ms) is at video time (t + offsetMs) / 1000 s. */
+  offsetMs: number;
+  width: number;
+  height: number;
+  /** Physical-pixel bounds of the recorded display, to place UI Automation rectangles on the video. */
+  display: { x: number; y: number; width: number; height: number };
+  blob?: Blob;
 }
 
 /** One user (or agent) action, as emitted by the mock apps or the scripted recording. */
@@ -80,11 +124,15 @@ export interface TraceEvent extends Action {
 export interface Recording {
   id: string;
   title: string;
+  /** live = captured from Windows (Gmail + Odoo), demo = the built-in scripted recording. */
   source: 'live' | 'demo';
   createdAt: number;
   duration: number;
   events: TraceEvent[];
   inboxId: string;
+  /** Everything the helper reported, before turning it into actions. */
+  raw?: RawOsEvent[];
+  video?: RecordingVideo;
 }
 
 // ---------- Mail content ----------
@@ -191,6 +239,8 @@ export interface RunStep {
   t1: number;
   state: 'done' | 'paused' | 'flagged';
   note?: string;
+  /** Screenshot of the app after this step (runs on this PC). */
+  shot?: string;
 }
 
 export interface RunPlan {
@@ -202,4 +252,24 @@ export interface RunPlan {
   duration: number;
   entered: Partial<Record<VarKey, string>>;
   bootMs: number;
+  /** Runs on this PC: the purchase order created in Odoo, if any. */
+  record?: { id: number; name: string; url: string };
+  /** Runs on this PC: why the run stopped early, if it did. */
+  error?: string;
+}
+
+/** A workflow run on this PC, as it progresses. */
+export interface LiveRun {
+  variationId: string;
+  status: 'queued' | 'running' | 'done' | 'error';
+  startedAt: number;
+  steps: RunStep[];
+  /** The step in progress. */
+  active: { nodeId: string; label: string; t0: number } | null;
+  values: Partial<Record<VarKey, string>>;
+  shot: string | null;
+  plan: RunPlan | null;
+  error?: string;
+  /** Runs in a Freestyle VM: its live screen and Odoo. */
+  vm?: { vncUrl: string; odooUrl: string; bootMs: number; readyMs: number };
 }

@@ -1,87 +1,73 @@
-import type { SVGProps } from 'react';
+// Icons: Phosphor, duotone by default so they read as layered glass; small inline marks are bold.
+// The rest of the app imports these names, so swapping the set happens here only.
+import {
+  ArrowSquareOutIcon,
+  CaretUpIcon,
+  CheckIcon,
+  ClockIcon,
+  DesktopIcon,
+  FilmStripIcon,
+  FlagPennantIcon,
+  FlowArrowIcon,
+  GhostIcon,
+  GraphIcon,
+  HandPalmIcon,
+  MonitorPlayIcon,
+  PauseIcon,
+  PlayIcon,
+  QuestionIcon,
+  ReceiptIcon,
+  SparkleIcon,
+  XIcon,
+} from '@phosphor-icons/react';
+import type { Icon as PhIcon, IconWeight } from '@phosphor-icons/react';
 
-type P = SVGProps<SVGSVGElement> & { size?: number };
+type P = { size?: number; className?: string; weight?: IconWeight };
 
-const base = (size = 18): SVGProps<SVGSVGElement> => ({
-  width: size,
-  height: size,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.8,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-});
+const make = (I: PhIcon, weight: IconWeight = 'duotone') =>
+  function Icon({ size = 18, weight: w, ...p }: P) {
+    return <I size={size} weight={w ?? weight} aria-hidden {...p} />;
+  };
 
-export const IconRecordings = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><rect x="3" y="5" width="13" height="14" rx="2" /><path d="M16 10l5-3v10l-5-3" /></svg>
-);
-export const IconWorkflow = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><rect x="3" y="3" width="7" height="5" rx="1.2" /><rect x="14" y="16" width="7" height="5" rx="1.2" /><rect x="3" y="16" width="7" height="5" rx="1.2" /><path d="M6.5 8v8M6.5 12h11v4" /></svg>
-);
-export const IconVm = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></svg>
-);
-export const IconReport = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M6 3h9l4 4v14H6z" /><path d="M14 3v5h5M9 13h7M9 17h5" /></svg>
-);
-export const IconDeploy = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M4 12h4l3-7 4 14 3-7h2" /></svg>
-);
-export const IconPlay = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p} fill="currentColor" stroke="none"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>
-);
-export const IconPause = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p} fill="currentColor" stroke="none"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-);
-export const IconCheck = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p} strokeWidth={2.4}><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-);
-export const IconFlag = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></svg>
-);
-export const IconHand = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-);
-export const IconSpark = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" /></svg>
-);
-export const IconClock = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
-);
-export const IconChevronUp = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M6 15l6-6 6 6" /></svg>
-);
-export const IconQuestion = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5V14M12 17.5v.01" /></svg>
-);
-export const IconLink = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" /></svg>
-);
-export const IconX = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>
-);
-export const IconDesktop = ({ size, ...p }: P) => (
-  <svg {...base(size)} {...p}><rect x="3" y="4" width="18" height="13" rx="1.5" /><path d="M3 14h18M9 20h6" /></svg>
-);
+export const IconRecordings = make(FilmStripIcon);
+export const IconWorkflow = make(FlowArrowIcon);
+export const IconVm = make(MonitorPlayIcon);
+export const IconReport = make(ReceiptIcon);
+/** Shadow mode: the workflow runs alongside people without acting. */
+export const IconDeploy = make(GhostIcon);
+export const IconKnowledge = make(GraphIcon);
+export const IconPlay = make(PlayIcon, 'fill');
+export const IconPause = make(PauseIcon, 'fill');
+export const IconCheck = make(CheckIcon, 'bold');
+export const IconFlag = make(FlagPennantIcon, 'fill');
+export const IconHand = make(HandPalmIcon, 'fill');
+export const IconSpark = make(SparkleIcon, 'fill');
+export const IconClock = make(ClockIcon, 'bold');
+export const IconChevronUp = make(CaretUpIcon, 'bold');
+export const IconQuestion = make(QuestionIcon, 'bold');
+export const IconLink = make(ArrowSquareOutIcon, 'bold');
+export const IconX = make(XIcon, 'bold');
+export const IconDesktop = make(DesktopIcon);
 
-/** The MonteCarlo Labs mark: a die showing five. */
+/** The MonteCarlo Labs mark: a die showing five, cut from glass. */
 export const Mark = ({ size = 28 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-    <rect x="1" y="1" width="30" height="30" rx="8" fill="var(--ink)" />
-    <rect x="7" y="7" width="18" height="18" rx="4.5" fill="#fff" />
-    <g fill="var(--agent)">
-      <circle cx="11.5" cy="11.5" r="1.8" /><circle cx="20.5" cy="11.5" r="1.8" /><circle cx="16" cy="16" r="1.8" />
-      <circle cx="11.5" cy="20.5" r="1.8" /><circle cx="20.5" cy="20.5" r="1.8" />
+  <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="mark">
+    <defs>
+      <linearGradient id="mark-glass" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#3a55d6" />
+        <stop offset="1" stopColor="#1b2a8f" />
+      </linearGradient>
+    </defs>
+    <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#mark-glass)" />
+    <rect x="1.5" y="1.5" width="29" height="29" rx="8.5" fill="none" stroke="rgba(255,255,255,0.35)" />
+    <g fill="#fff">
+      <circle cx="10.5" cy="10.5" r="2" /><circle cx="21.5" cy="10.5" r="2" /><circle cx="16" cy="16" r="2" />
+      <circle cx="10.5" cy="21.5" r="2" /><circle cx="21.5" cy="21.5" r="2" />
     </g>
   </svg>
 );
 
-/** Trace's tray icon. */
+/** Trace's tally light: grey at rest, red while recording (like a camera's). */
 export const TraceGlyph = ({ recording, size = 16 }: { recording?: boolean; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-    <circle cx="32" cy="32" r="22" fill="none" stroke={recording ? '#FF5A4A' : '#C9D3DF'} strokeWidth="7" />
-    <circle cx="32" cy="32" r={recording ? 12 : 9} fill={recording ? '#FF5A4A' : '#C9D3DF'} />
-  </svg>
+  <span className={`tally${recording ? ' is-rec' : ''}`} style={{ width: size, height: size }} aria-hidden />
 );

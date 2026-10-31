@@ -69,7 +69,8 @@ export function Timeline({ rec, t, onSeek, selectedId, onSelect, range, focusIds
   };
 
   const ticks: number[] = [];
-  for (let s = 0; s * 1000 <= rec.duration; s += 2) ticks.push(s * 1000);
+  const step = rec.duration > 120000 ? 15 : rec.duration > 60000 ? 10 : rec.duration > 30000 ? 5 : 2;
+  for (let s = 0; s * 1000 <= rec.duration; s += step) ticks.push(s * 1000);
   const segs = segments(rec);
 
   return (

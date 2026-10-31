@@ -10,11 +10,36 @@
     "app:dev": "concurrently -k -n vite,electron \"vite --port 5173 --strictPort\" \"wait-on tcp:5173 && electron . --dev\"",
     "build": "vite build",
     "app": "vite build && electron .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "helper:build": "cargo build --release --manifest-path native/trace-helper/Cargo.toml",
+    "helper:print": "native\trace-helper\target\release\trace-helper.exe --print",
+    "odoo:setup": "wsl -d Ubuntu-22.04 -u root bash scripts/wsl/odoo-setup.sh",
+    "odoo:start": "node scripts/odoo-start.mjs",
+    "odoo:stop": "wsl --terminate Ubuntu-22.04",
+    "odoo:seed": "vite-node scripts/odoo-seed.ts",
+    "odoo:reset": "vite-node scripts/odoo-seed.ts -- --reset",
+    "email:send": "vite-node scripts/send-emails.ts --",
+    "vm:spike": "vite-node scripts/vm-spike.ts --",
+    "vm:image": "vite-node scripts/vm-build-image.ts",
+    "actors:dev": "node scripts/actors-start.mjs dev",
+    "actors:generate": "node scripts/actors-start.mjs generate",
+    "actors:stop": "node scripts/actors-start.mjs stop",
+    "actors:reset": "node scripts/actors-start.mjs reset"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "freestyle": "^0.2.21",
+    "imapflow": "^1.7.8",
+    "mailparser": "^3.14.1",
+    "playwright-core": "^1.64.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-force-graph-2d": "^1.29.2"
   },
   "devDependencies": {
     "@types/react": "^19.1.0",
@@ -22,8 +47,10 @@
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.2.0",
     "electron": "^38.0.0",
+    "nodemailer": "^6.10.1",
     "typescript": "^5.9.0",
     "vite": "^7.1.0",
+    "vitest": "^3.2.7",
     "wait-on": "^8.0.0"
   }
 }

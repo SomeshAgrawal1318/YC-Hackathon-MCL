@@ -140,9 +140,16 @@ export interface RunResult {
   passed: boolean;
 }
 
+/** Quantities and prices match as numbers ("750" and "750.00" are the same); the rest as text. */
+export function sameValue(k: VarKey, a: string | undefined, b: string | undefined): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  if (k === 'quantity' || k === 'unit_price') return Number(a.replace(/,/g, '')) === Number(b.replace(/,/g, ''));
+  return a.trim() === b.trim();
+}
+
 export function judge(wf: Workflow, v: Variation, plan: RunPlan): RunResult {
   const expected = expectedOutcome(wf, v);
-  const mismatches = Object.keys(plan.entered).filter((k) => plan.entered[k as VarKey] !== v.expected[k as VarKey]) as VarKey[];
+  const mismatches = Object.keys(plan.entered).filter((k) => !sameValue(k as VarKey, plan.entered[k as VarKey], v.expected[k as VarKey])) as VarKey[];
   const fieldsOk = mismatches.length === 0;
-  return { plan, expected, fieldsOk, mismatches, passed: expected === plan.outcome && fieldsOk };
+  return { plan, expected, fieldsOk, mismatches, passed: !plan.error && expected === plan.outcome && fieldsOk };
 }
