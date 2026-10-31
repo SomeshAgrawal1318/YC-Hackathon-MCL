@@ -10,6 +10,23 @@
 
 Record a back-office task one time in your real apps (here: Gmail and the Odoo ERP). MonteCarlo Labs turns the recording into a workflow, fills in the rules the recording couldn't show from your company's own records, tests it in throwaway VMs, and runs it in shadow mode next to your team before it ever acts alone.
 
+## Try it as a judge (no API keys)
+
+Use **Node 24 LTS**. This path runs the real product UI with fixture recordings and simulated test results; it does not operate Gmail or Odoo.
+
+```sh
+npm ci
+npm run dev
+```
+
+Open http://localhost:5173. Press **Ctrl+Shift+D**, select **Load demo recording**, then **Esc**. After the workflow finishes building, select **Review the workflow**, answer **Ask me first**, and select **Approve workflow**. Reopen the controls and select **Run simulated tests** to inspect the reports. **Ctrl+Shift+R** resets the demo.
+
+For the live Windows capture / Gmail / Odoo / VM setup, continue below. See the [judge guide](docs/submission.md) for the architecture, implementation boundaries and verification checklist.
+
+```sh
+npm run check  # typecheck, workflow tests, Electron boundary tests, production build
+```
+
 ## The idea
 
 Operations teams spend hours a week copying data from emails into their ERP. A supplier confirms an order, and a buyer types the PO number, product, quantity, price and arrival date into a purchase order by hand.
@@ -66,7 +83,7 @@ Design docs: [docs/trace-plan-simple.md](docs/trace-plan-simple.md) (short) and 
 
 ## One-time setup
 
-Native Windows PowerShell (not WSL). Needs Node 20+, Google Chrome, WSL with Ubuntu-22.04, and Rust (MSVC) to build the helper.
+Native Windows PowerShell (not WSL). Needs Node 24 LTS, Google Chrome, WSL with Ubuntu-22.04, and Rust (MSVC) to build the helper.
 
 ```powershell
 npm install

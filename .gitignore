@@ -9,3 +9,13 @@ vm-spike.json
 vm-image.json
 vm-spike-*.png
 vm-image-check.png
+
+# Local credentials, captures, and generated artifacts
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+recordings/
+playwright-report/
+test-results/
