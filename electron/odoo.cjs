@@ -3,31 +3,47 @@
 
 const { spawn } = require('node:child_process');
 const { loadEnv } = require('./env.cjs');
+const { isRetryableError, retryDelayMs, parseRetryAfter } = require('./retry-policy.cjs');
 
 class OdooError extends Error {}
 
-function createOdoo(env = loadEnv()) {
+function createOdoo(env = loadEnv(), { fetch: request = globalThis.fetch, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), timeoutMs = 10000 } = {}) {
   const base = env.ODOO_URL.replace(/\/$/, '');
   let uid = null;
   let seq = 0;
 
   async function rpc(service, method, args) {
-    let res;
-    try {
-      res = await fetch(`${base}/jsonrpc`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id: ++seq, params: { service, method, args } }),
-      });
-    } catch (e) {
-      throw new OdooError(`Odoo is not reachable at ${base} (${e.cause?.code ?? e.message}). Start it with "npm run odoo:start".`);
+    // Retry only explicitly known reads. A timed-out write may already have committed.
+    const safeRead = service === 'object' && ['read', 'search', 'search_read', 'search_count', 'fields_get'].includes(args[4]);
+    const id = ++seq;
+    for (let attempt = 0; ; attempt++) {
+      let res;
+      try {
+        res = await request(`${base}/jsonrpc`, {
+          method: 'POST', redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'call', id, params: { service, method, args } }),
+        });
+        if (!res.ok) {
+          const error = new OdooError(`Odoo HTTP ${res.status}`);
+          error.status = res.status;
+          error.retryAfterMs = parseRetryAfter(res.headers.get('retry-after'));
+          throw error;
+        }
+      } catch (error) {
+        if (safeRead && attempt < 2 && isRetryableError(error)) {
+          await sleep(retryDelayMs(error, 250 * 2 ** attempt));
+          continue;
+        }
+        throw new OdooError('Odoo request failed. Check the connection; verify the ERP before retrying a write.', { cause: error });
+      }
+      const body = await res.json();
+      if (!body || body.jsonrpc !== '2.0' || body.id !== id || (!Object.hasOwn(body, 'result') && !body.error)) {
+        throw new OdooError('Invalid Odoo JSON-RPC response');
+      }
+      if (body.error) throw new OdooError(body.error.data?.message || body.error.message || 'Odoo error');
+      return body.result;
     }
-    const body = await res.json();
-    if (body.error) {
-      const msg = body.error.data?.message || body.error.message || 'Odoo error';
-      throw new OdooError(msg);
-    }
-    return body.result;
   }
 
   async function login() {
